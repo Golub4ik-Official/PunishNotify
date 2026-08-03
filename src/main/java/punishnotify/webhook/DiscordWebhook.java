@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,15 +81,21 @@ public class DiscordWebhook {
     }
 
     private byte[] buildMultipartBody(PendingPunishment p, List<Path> files, String boundary) throws IOException {
+        List<String> filenames = new ArrayList<>();
+        for (Path file : files) {
+            filenames.add(file.getFileName().toString());
+        }
+        String imageAttachment = findFirstImageAttachment(files);
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-        writePart(out, boundary, "payload_json", "application/json", buildEmbedJson(p));
+        writePart(out, boundary, "payload_json", "application/json", buildEmbedJson(p, imageAttachment));
 
         for (int i = 0; i < files.size(); i++) {
             Path file = files.get(i);
             byte[] data = Files.readAllBytes(file);
             String contentType = guessContentType(file);
-            String filename = escapeFormField(file.getFileName().toString());
+            String filename = escapeFormField(filenames.get(i));
             writeFilePart(out, boundary, "files[" + i + "]", filename, contentType, data);
         }
 
@@ -96,7 +103,16 @@ public class DiscordWebhook {
         return out.toByteArray();
     }
 
-    String buildEmbedJson(PendingPunishment p) {
+    private static String findFirstImageAttachment(List<Path> files) {
+        for (Path file : files) {
+            if (guessContentType(file).startsWith("image/")) {
+                return "attachment://" + file.getFileName();
+            }
+        }
+        return null;
+    }
+
+    String buildEmbedJson(PendingPunishment p, String imageAttachmentUrl) {
         StringBuilder json = new StringBuilder();
 
         json.append("{\"username\":");
@@ -131,7 +147,11 @@ public class DiscordWebhook {
         json.append(',');
         appendField(json, "Время", TIME_FORMAT.format(Instant.ofEpochMilli(p.createdAt())), true);
 
-        json.append("],\"footer\":{\"text\":\"PunishNotify\"}}");
+        json.append("],");
+        if (imageAttachmentUrl != null) {
+            json.append("\"image\":{\"url\":").append(jsonString(imageAttachmentUrl)).append("},");
+        }
+        json.append("\"footer\":{\"text\":\"PunishNotify\"}}");
 
         json.append("]}");
         return json.toString();

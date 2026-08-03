@@ -176,6 +176,11 @@ public class HttpUploadServer {
                         skipPart(reader, boundary);
                         continue;
                     }
+                    filename = sanitizeFilename(filename);
+                    if (filename == null) {
+                        skipPart(reader, boundary);
+                        continue;
+                    }
 
                     if (!isAllowedExtension(filename)) {
                         skipPart(reader, boundary);
@@ -268,11 +273,24 @@ public class HttpUploadServer {
             if (part.startsWith("filename=")) {
                 String filename = part.substring("filename=".length()).replace("\"", "");
                 if (!filename.isBlank()) {
-                    return filename;
+                    return decodeUtf8Filename(filename);
                 }
             }
         }
         return null;
+    }
+
+    private String decodeUtf8Filename(String filename) {
+        byte[] bytes = filename.getBytes(StandardCharsets.ISO_8859_1);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    private String sanitizeFilename(String filename) {
+        String sanitized = filename.replace('\\', '_').replace('/', '_');
+        if (sanitized.contains("..") || sanitized.isBlank()) {
+            return null;
+        }
+        return sanitized;
     }
 
     private boolean isAllowedExtension(String filename) {
