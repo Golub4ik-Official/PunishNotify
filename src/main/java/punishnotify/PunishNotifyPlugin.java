@@ -10,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import punishnotify.command.PunishNotifyCommand;
 import punishnotify.evidence.EvidenceManager;
 import punishnotify.evidence.HttpUploadServer;
+import punishnotify.listener.CommandListener;
 import punishnotify.listener.EssentialsListener;
 import punishnotify.webhook.DiscordWebhook;
 
@@ -27,7 +28,7 @@ public class PunishNotifyPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         initializeComponents();
-        registerEssentialsListener();
+        registerListeners();
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
                 event.registrar().register("punishnotify",
@@ -83,7 +84,11 @@ public class PunishNotifyPlugin extends JavaPlugin {
         }
     }
 
-    private void registerEssentialsListener() {
+    private void registerListeners() {
+        getServer().getPluginManager().registerEvents(
+                new CommandListener(evidenceManager), this);
+        getLogger().info("Слушатель команд наказаний зарегистрирован.");
+
         if (Bukkit.getPluginManager().getPlugin("Essentials") == null) {
             getLogger().warning("EssentialsX не найден. События наказаний не будут отслеживаться.");
             return;

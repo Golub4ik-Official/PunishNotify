@@ -89,6 +89,10 @@ public class EssentialsListener implements Listener {
         com.earth2me.essentials.IUser kicked = event.getKicked();
         com.earth2me.essentials.IUser kicker = event.getKicker();
 
+        if (kicked.getBase().isBanned()) {
+            return;
+        }
+
         String playerName = kicked.getName();
         UUID playerUuid = kicked.getUUID();
 
