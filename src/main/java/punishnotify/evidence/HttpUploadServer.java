@@ -4,16 +4,15 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
-import java.io.BufferedReader;
-import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -164,41 +163,46 @@ public class HttpUploadServer {
     private List<Path> parseMultipartUpload(HttpExchange exchange, String boundary) throws IOException {
         List<Path> files = new ArrayList<>();
         Path tempDir = Files.createTempDirectory("punishnotify_");
+        byte[] delim = ("\r\n--" + boundary).getBytes(StandardCharsets.ISO_8859_1);
 
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(exchange.getRequestBody(), StandardCharsets.ISO_8859_1))) {
+        try (BufferedInputStream in = new BufferedInputStream(exchange.getRequestBody())) {
+            String firstLine = readAsciiLine(in);
+            if (firstLine == null || !firstLine.startsWith("--" + boundary)) {
+                throw new IOException("Неверный формат multipart: нет начальной границы");
+            }
 
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains("Content-Disposition") && line.contains("filename=")) {
-                    String filename = extractFilename(line);
-                    if (filename == null || filename.isBlank()) {
-                        skipPart(reader, boundary);
-                        continue;
+            boolean finished = false;
+            while (!finished) {
+                String filename = null;
+                String headerLine;
+                while ((headerLine = readAsciiLine(in)) != null && !headerLine.isEmpty()) {
+                    if (headerLine.startsWith("Content-Disposition") && headerLine.contains("filename=")) {
+                        filename = extractFilename(headerLine);
+                        filename = filename == null ? null : sanitizeFilename(filename);
                     }
-                    filename = sanitizeFilename(filename);
-                    if (filename == null) {
-                        skipPart(reader, boundary);
-                        continue;
-                    }
+                }
+                if (headerLine == null) {
+                    break;
+                }
 
-                    if (!isAllowedExtension(filename)) {
-                        skipPart(reader, boundary);
-                        continue;
-                    }
-
-                    reader.readLine();
-                    String ctLine = reader.readLine();
-                    reader.readLine();
-
+                if (filename == null || !isAllowedExtension(filename)) {
+                    consumePartContent(in, delim, null, Long.MAX_VALUE);
+                } else {
                     Path file = tempDir.resolve(filename);
-                    long bytesWritten = writeFileFromStream(reader, file, boundary);
-
-                    if (bytesWritten > 0 && bytesWritten <= maxFileSizeBytes) {
+                    long bytesWritten = consumePartContent(in, delim, file, maxFileSizeBytes);
+                    if (bytesWritten > 0) {
                         files.add(file);
-                    } else if (bytesWritten > maxFileSizeBytes) {
+                    } else {
                         try { Files.deleteIfExists(file); } catch (Exception ignored) {}
                     }
+                }
+
+                String tail = readAsciiLine(in);
+                if (tail == null) {
+                    break;
+                }
+                if ("--".equals(tail)) {
+                    finished = true;
                 }
             }
         } catch (Exception e) {
@@ -215,46 +219,63 @@ public class HttpUploadServer {
         return files;
     }
 
-    private long writeFileFromStream(BufferedReader reader, Path file, String boundary) throws IOException {
-        long totalBytes = 0;
-        java.io.FileOutputStream fos = new java.io.FileOutputStream(file.toFile());
-        java.io.BufferedOutputStream bos = new java.io.BufferedOutputStream(fos);
+    private long consumePartContent(BufferedInputStream in, byte[] delim, Path file, long maxBytes) throws IOException {
+        long total = 0;
+        boolean tooBig = false;
+        byte[] tail = Arrays.copyOfRange(delim, 2, delim.length);
 
-        try {
-            byte[] prevBytes = null;
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains(boundary)) {
+        try (OutputStream out = file != null ? Files.newOutputStream(file) : OutputStream.nullOutputStream()) {
+            while (true) {
+                int b = in.read();
+                if (b == -1) {
                     break;
                 }
-                byte[] lineBytes = (line + "\r\n").getBytes(StandardCharsets.ISO_8859_1);
-                if (prevBytes != null) {
-                    bos.write(prevBytes);
-                    totalBytes += prevBytes.length;
+                if (b == '\r') {
+                    in.mark(delim.length + 16);
+                    int c = in.read();
+                    if (c == '\n') {
+                        byte[] rest = in.readNBytes(tail.length);
+                        if (Arrays.equals(rest, tail)) {
+                            break;
+                        }
+                    }
+                    in.reset();
                 }
-                prevBytes = lineBytes;
-
-                if (totalBytes > maxFileSizeBytes + 1024) {
-                    break;
+                if (!tooBig) {
+                    out.write(b);
+                    total++;
+                    if (total > maxBytes) {
+                        tooBig = true;
+                    }
                 }
             }
-            if (prevBytes != null) {
-                bos.write(Arrays.copyOf(prevBytes, prevBytes.length - 2));
-                totalBytes += prevBytes.length - 2;
-            }
-        } finally {
-            bos.close();
         }
-        return totalBytes;
+        return tooBig ? -1 : total;
     }
 
-    private void skipPart(BufferedReader reader, String boundary) throws IOException {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.contains(boundary)) {
-                break;
+    private String readAsciiLine(InputStream in) throws IOException {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        int b;
+        while ((b = in.read()) != -1) {
+            if (b == '\n') {
+                byte[] bytes = buf.toByteArray();
+                int len = bytes.length;
+                if (len > 0 && bytes[len - 1] == '\r') {
+                    len--;
+                }
+                return new String(bytes, 0, len, StandardCharsets.ISO_8859_1);
             }
+            buf.write(b);
         }
+        if (buf.size() == 0) {
+            return null;
+        }
+        byte[] bytes = buf.toByteArray();
+        int len = bytes.length;
+        if (len > 0 && bytes[len - 1] == '\r') {
+            len--;
+        }
+        return new String(bytes, 0, len, StandardCharsets.ISO_8859_1);
     }
 
     private String extractBoundary(String contentType) {
