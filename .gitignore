@@ -1,0 +1,23 @@
+# Gradle
+.gradle/
+build/
+
+# Eclipse
+bin/
+.classpath
+.project
+.settings/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Server runtime files (never commit these)
+logs/
+*.log

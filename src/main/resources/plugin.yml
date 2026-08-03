@@ -1,0 +1,22 @@
+name: PunishNotify
+version: 1.0.0
+main: punishnotify.PunishNotifyPlugin
+api-version: '1.21.11'
+description: Отправка уведомлений о наказаниях игроков (EssentialsX) в Discord через вебхук с поддержкой доказательств.
+author: Golub4ik-Official
+website: https://github.com/Golub4ik-Official
+softdepend: [Essentials]
+
+permissions:
+  punishnotify.admin:
+    description: Полный доступ к управлению плагином
+    default: op
+    children:
+      punishnotify.reload: true
+      punishnotify.skip: true
+  punishnotify.reload:
+    description: Перезагрузка конфигурации
+    default: op
+  punishnotify.skip:
+    description: Пропуск загрузки доказательств
+    default: op

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PunishNotify — Загрузка доказательств</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.container{max-width:520px;width:90%;padding:32px;background:#16213e;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+h1{font-size:24px;color:#e94560;margin-bottom:4px}
+.subtitle{color:#888;font-size:14px;margin-bottom:24px}
+.dropzone{border:2px dashed #444;border-radius:8px;padding:40px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px}
+.dropzone:hover,.dropzone.dragover{border-color:#e94560;background:rgba(233,69,96,.08)}
+.dropzone p{color:#888;font-size:15px}
+.dropzone .icon{font-size:40px;margin-bottom:8px}
+.file-list{margin-bottom:16px;max-height:200px;overflow-y:auto}
+.file-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0f3460;border-radius:6px;margin-bottom:6px;font-size:14px}
+.file-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
+.file-item .size{color:#888;font-size:12px;margin-right:8px}
+.file-item .remove{color:#e94560;cursor:pointer;font-size:18px;line-height:1}
+.file-item .remove:hover{color:#ff6b6b}
+.file-item.error{border:1px solid #e94560}
+.file-item.error .name{color:#e94560}
+.info{font-size:13px;color:#666;margin-bottom:16px}
+.info b{color:#999}
+.progress{margin-bottom:16px;display:none}
+.progress-bar{height:6px;background:#0f3460;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:#e94560;border-radius:3px;width:0;transition:width .3s}
+.progress-text{font-size:13px;color:#888;margin-top:6px;text-align:center}
+.buttons{display:flex;gap:12px}
+.btn{flex:1;padding:12px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-upload{background:#e94560;color:#fff}
+.btn-upload:hover:not(:disabled){background:#ff6b6b}
+.btn-skip{background:#333;color:#ccc}
+.btn-skip:hover{background:#444}
+.result{display:none;text-align:center;padding:20px;font-size:16px;margin-top:16px}
+.result.success{color:#57f287}
+.result.error{color:#e94560}
+#fileInput{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>PunishNotify</h1>
+<p class="subtitle">Загрузка доказательств</p>
+
+<div class="dropzone" id="dropzone">
+<div class="icon">&#128467;</div>
+<p>Перетащите файлы сюда или нажмите для выбора</p>
+<p style="font-size:12px;margin-top:8px;color:#555">Макс. 25 МБ на файл</p>
+</div>
+<input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf">
+
+<div class="file-list" id="fileList"></div>
+<div class="info">Макс. файлов: <b>10</b> | Форматы: <b>png, jpg, gif, webp, mp4, webm, pdf</b></div>
+
+<div class="progress" id="progress">
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="progress-text" id="progressText">Загрузка...</div>
+</div>
+
+<div class="buttons" id="buttons">
+<button class="btn btn-upload" id="uploadBtn" disabled>Загрузить</button>
+<button class="btn btn-skip" id="skipBtn">Пропустить</button>
+</div>
+
+<div class="result" id="result"></div>
+</div>
+
+<script>
+const TOKEN="{{TOKEN}}";
+const MAX_SIZE = 25 * 1024 * 1024;
+const MAX_FILES = 10;
+let files = [];
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const uploadBtn = document.getElementById('uploadBtn');
+const skipBtn = document.getElementById('skipBtn');
+const progress = document.getElementById('progress');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const result = document.getElementById('result');
+const buttons = document.getElementById('buttons');
+
+const ALLOWED = ['.png','.jpg','.jpeg','.gif','.webp','.mp4','.webm','.pdf'];
+
+function hasAllowedExt(name) {
+    const lower = name.toLowerCase();
+    return ALLOWED.some(e => lower.endsWith(e));
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' Б';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' КБ';
+    return (bytes/(1024*1024)).toFixed(1) + ' МБ';
+}
+
+function addFiles(newFiles) {
+    for (const f of newFiles) {
+        if (files.length >= MAX_FILES) {
+            showFileItem(f.name, f.size, true, 'Лимит файлов exceeded');
+            continue;
+        }
+        if (!hasAllowedExt(f.name)) {
+            showFileItem(f.name, f.size, true, 'Неподдерживаемый формат');
+            continue;
+        }
+        if (f.size > MAX_SIZE) {
+            showFileItem(f.name, f.size, true, 'Файл слишком большой');
+            continue;
+        }
+        files.push(f);
+        showFileItem(f.name, f.size, false);
+    }
+    updateUploadBtn();
+}
+
+function showFileItem(name, size, error, errorMsg) {
+    const div = document.createElement('div');
+    div.className = 'file-item' + (error ? ' error' : '');
+    div.innerHTML = '<span class="name" title="' + escHtml(name) + '">' + escHtml(name) + '</span>'
+        + '<span class="size">' + formatSize(size) + '</span>'
+        + (error ? '<span style="color:#e94560;font-size:12px;margin-right:8px">' + escHtml(errorMsg) + '</span>' : '')
+        + '<span class="remove" data-name="' + escHtml(name) + '">&times;</span>';
+    fileList.appendChild(div);
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateUploadBtn() {
+    uploadBtn.disabled = files.length === 0;
+}
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    addFiles(Array.from(e.dataTransfer.files));
+});
+fileInput.addEventListener('change', () => {
+    addFiles(Array.from(fileInput.files));
+    fileInput.value = '';
+});
+
+fileList.addEventListener('click', e => {
+    if (e.target.classList.contains('remove')) {
+        const name = e.target.getAttribute('data-name');
+        files = files.filter(f => f.name !== name);
+        e.target.parentElement.remove();
+        updateUploadBtn();
+    }
+});
+
+async function upload() {
+    if (files.length === 0) return;
+    const fd = new FormData();
+    files.forEach(f => fd.append('files', f));
+
+    uploadBtn.disabled = true;
+    skipBtn.disabled = true;
+    progress.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Загрузка...';
+
+    try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/upload?token=' + TOKEN);
+
+        xhr.upload.onprogress = e => {
+            if (e.lengthComputable) {
+                const pct = Math.round(e.loaded / e.total * 100);
+                progressFill.style.width = pct + '%';
+                progressText.textContent = 'Загрузка... ' + pct + '%';
+            }
+        };
+
+        const resp = await new Promise((resolve, reject) => {
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    reject(new Error('HTTP ' + xhr.status));
+                }
+            };
+            xhr.onerror = () => reject(new Error('Ошибка сети'));
+            xhr.send(fd);
+        });
+
+        progressFill.style.width = '100%';
+        progressText.textContent = 'Загружено!';
+        showResult('success', 'Доказательства загружены (' + resp.files + ' файл(ов)). Вы можете закрыть эту страницу.');
+        buttons.style.display = 'none';
+
+    } catch (err) {
+        progressText.textContent = 'Ошибка: ' + err.message;
+        progressFill.style.background = '#e94560';
+        showResult('error', 'Ошибка загрузки: ' + err.message);
+        uploadBtn.disabled = false;
+        skipBtn.disabled = false;
+    }
+}
+
+async function skip() {
+    skipBtn.disabled = true;
+    uploadBtn.disabled = true;
+    try {
+        const resp = await fetch('/skip?token=' + TOKEN, { method: 'POST' });
+        if (resp.ok) {
+            showResult('success', 'Вебхук будет отправлен без доказательств. Вы можете закрыть эту страницу.');
+            buttons.style.display = 'none';
+        } else {
+            showResult('error', 'Ошибка: HTTP ' + resp.status);
+            skipBtn.disabled = false;
+            uploadBtn.disabled = false;
+        }
+    } catch (err) {
+        showResult('error', 'Ошибка: ' + err.message);
+        skipBtn.disabled = false;
+        uploadBtn.disabled = false;
+    }
+}
+
+function showResult(type, msg) {
+    result.className = 'result ' + type;
+    result.textContent = msg;
+    result.style.display = 'block';
+}
+
+uploadBtn.addEventListener('click', upload);
+skipBtn.addEventListener('click', skip);
+</script>
+</body>
+</html>
