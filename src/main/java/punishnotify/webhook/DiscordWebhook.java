@@ -128,6 +128,7 @@ public class DiscordWebhook {
         }
 
         appendField(json, "Сервер", p.serverName() != null ? p.serverName() : "Неизвестен", true);
+        json.append(',');
         appendField(json, "Время", TIME_FORMAT.format(Instant.ofEpochMilli(p.createdAt())), true);
 
         json.append("],\"footer\":{\"text\":\"PunishNotify\"}}");
