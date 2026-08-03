@@ -1,5 +1,5 @@
 name: PunishNotify
-version: 1.1.1
+version: 1.1.2
 main: punishnotify.PunishNotifyPlugin
 api-version: '1.21.11'
 description: Отправка уведомлений о наказаниях игроков (EssentialsX) в Discord через вебхук с поддержкой доказательств.

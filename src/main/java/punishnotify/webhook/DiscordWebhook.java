@@ -49,8 +49,8 @@ public class DiscordWebhook {
             return;
         }
         try {
-            byte[] body = buildMultipartBody(punishment, files);
             String boundary = "----PunishNotify" + System.currentTimeMillis();
+            byte[] body = buildMultipartBody(punishment, files, boundary);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(webhookUrl))
@@ -60,6 +60,16 @@ public class DiscordWebhook {
                     .build();
 
             client.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+                    .thenAccept(response -> {
+                        int code = response.statusCode();
+                        if (code >= 200 && code < 300) {
+                            logger.info("Вебхук отправлен для " + punishment.playerName()
+                                    + " (" + punishment.type().displayName() + "), HTTP " + code);
+                        } else {
+                            logger.warning("Вебхук для " + punishment.playerName()
+                                    + " (" + punishment.type().displayName() + ") отклонён Discord: HTTP " + code);
+                        }
+                    })
                     .exceptionally(ex -> {
                         logger.log(Level.WARNING, "Ошибка отправки вебхука: " + ex.getMessage());
                         return null;
@@ -69,8 +79,7 @@ public class DiscordWebhook {
         }
     }
 
-    private byte[] buildMultipartBody(PendingPunishment p, List<Path> files) throws IOException {
-        String boundary = "----PunishNotify" + System.currentTimeMillis();
+    private byte[] buildMultipartBody(PendingPunishment p, List<Path> files, String boundary) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         writePart(out, boundary, "payload_json", "application/json", buildEmbedJson(p));
