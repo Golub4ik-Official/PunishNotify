@@ -28,10 +28,12 @@ public class EssentialsListener implements Listener {
 
         String moderatorName = "Консоль";
         UUID moderatorUuid = null;
-        Player base = controller.getBase();
-        if (base instanceof Player player) {
-            moderatorName = player.getName();
-            moderatorUuid = player.getUniqueId();
+        if (controller != null) {
+            Player base = controller.getBase();
+            if (base instanceof Player player) {
+                moderatorName = player.getName();
+                moderatorUuid = player.getUniqueId();
+            }
         }
 
         PunishmentType type = event.getValue() ? PunishmentType.MUTE : PunishmentType.UNMUTE;
@@ -64,10 +66,12 @@ public class EssentialsListener implements Listener {
 
         String moderatorName = "Консоль";
         UUID moderatorUuid = null;
-        Player base = controller.getBase();
-        if (base instanceof Player player) {
-            moderatorName = player.getName();
-            moderatorUuid = player.getUniqueId();
+        if (controller != null) {
+            Player base = controller.getBase();
+            if (base instanceof Player player) {
+                moderatorName = player.getName();
+                moderatorUuid = player.getUniqueId();
+            }
         }
 
         PunishmentType type = event.getValue() ? PunishmentType.JAIL : PunishmentType.UNJAIL;
