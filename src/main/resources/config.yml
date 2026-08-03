@@ -7,6 +7,9 @@ http-server:
   enabled: true
   port: 8734
   bind: "0.0.0.0"
+  # Публичный адрес для ссылки загрузки доказательств (виден игрокам/модераторам).
+  # Если пусто — используется "http://<bind>:<port>". Пример: "http://server.kibermine.ru"
+  public-url: ""
 
 evidence:
   max-file-size-mb: 25

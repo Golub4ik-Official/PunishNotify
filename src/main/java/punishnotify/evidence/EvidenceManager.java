@@ -33,6 +33,7 @@ public class EvidenceManager {
     private int timeoutSeconds;
     private String httpHost;
     private int httpPort;
+    private String publicUrl;
 
     public EvidenceManager(PunishNotifyPlugin plugin, DiscordWebhook webhook,
                           HttpUploadServer httpServer) {
@@ -47,6 +48,10 @@ public class EvidenceManager {
         httpPort = plugin.getConfig().getInt("http-server.port", 8734);
         String bind = plugin.getConfig().getString("http-server.bind", "0.0.0.0");
         httpHost = "localhost".equals(bind) ? "127.0.0.1" : bind;
+        publicUrl = plugin.getConfig().getString("http-server.public-url", "");
+        if (publicUrl != null && publicUrl.endsWith("/")) {
+            publicUrl = publicUrl.substring(0, publicUrl.length() - 1);
+        }
     }
 
     public boolean isEventEnabled(PunishmentType type) {
@@ -105,7 +110,10 @@ public class EvidenceManager {
             return;
         }
 
-        String uploadUrl = "http://" + httpHost + ":" + httpPort + "/?token=" + p.token();
+        String baseUrl = (publicUrl != null && !publicUrl.isEmpty())
+                ? publicUrl
+                : "http://" + httpHost + ":" + httpPort;
+        String uploadUrl = baseUrl + "/?token=" + p.token();
 
         Component message = Component.text()
                 .append(Component.text("[PunishNotify] ", NamedTextColor.GOLD))

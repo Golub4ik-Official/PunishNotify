@@ -62,6 +62,7 @@
 | `http-server.enabled` | true | Включить HTTP-сервер загрузки |
 | `http-server.port` | 8734 | Порт HTTP-сервера |
 | `http-server.bind` | 0.0.0.0 | Привязка HTTP-сервера |
+| `http-server.public-url` | "" | Публичный адрес для ссылки загрузки доказательств (например `http://server.kibermine.ru`). Пусто = `http://<bind>:<port>` |
 | `evidence.max-file-size-mb` | 25 | Макс. размер файла (МБ) |
 | `evidence.max-files` | 10 | Макс. файлов на наказание |
 | `evidence.timeout-seconds` | 120 | Таймаут ожидания доказательств (сек.) |
