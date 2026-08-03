@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,9 +46,9 @@ public class DiscordWebhook {
         return !webhookUrl.isEmpty();
     }
 
-    public void sendAsync(PendingPunishment punishment, List<Path> files) {
+    public CompletableFuture<Boolean> sendAsync(PendingPunishment punishment, List<Path> files) {
         if (!enabled()) {
-            return;
+            return CompletableFuture.completedFuture(false);
         }
         try {
             String boundary = "----PunishNotify" + System.currentTimeMillis();
@@ -60,23 +61,25 @@ public class DiscordWebhook {
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                     .build();
 
-            client.sendAsync(request, HttpResponse.BodyHandlers.discarding())
-                    .thenAccept(response -> {
-                        int code = response.statusCode();
-                        if (code >= 200 && code < 300) {
+            return client.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+                    .thenApply(response -> {
+                        boolean ok = response.statusCode() >= 200 && response.statusCode() < 300;
+                        if (ok) {
                             logger.info("Вебхук отправлен для " + punishment.playerName()
-                                    + " (" + punishment.type().displayName() + "), HTTP " + code);
+                                    + " (" + punishment.type().displayName() + "), HTTP " + response.statusCode());
                         } else {
                             logger.warning("Вебхук для " + punishment.playerName()
-                                    + " (" + punishment.type().displayName() + ") отклонён Discord: HTTP " + code);
+                                    + " (" + punishment.type().displayName() + ") отклонён Discord: HTTP " + response.statusCode());
                         }
+                        return ok;
                     })
                     .exceptionally(ex -> {
                         logger.log(Level.WARNING, "Ошибка отправки вебхука: " + ex.getMessage());
-                        return null;
+                        return false;
                     });
         } catch (IOException e) {
             logger.log(Level.WARNING, "Ошибка подготовки вебхука: " + e.getMessage());
+            return CompletableFuture.completedFuture(false);
         }
     }
 

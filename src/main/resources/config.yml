@@ -2,6 +2,10 @@ discord:
   webhook-url: ""
   username: "PunishNotify"
   avatar-url: ""
+  # Очередь с повторными попытками при недоступности Discord
+  retry-enabled: true
+  retry-max-attempts: 5
+  retry-interval-seconds: 30
 
 http-server:
   enabled: true

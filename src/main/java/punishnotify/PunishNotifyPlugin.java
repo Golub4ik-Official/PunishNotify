@@ -13,6 +13,7 @@ import punishnotify.evidence.HttpUploadServer;
 import punishnotify.listener.CommandListener;
 import punishnotify.listener.EssentialsListener;
 import punishnotify.webhook.DiscordWebhook;
+import punishnotify.webhook.WebhookQueue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,12 +67,19 @@ public class PunishNotifyPlugin extends JavaPlugin {
 
         webhook = new DiscordWebhook(webhookUrl, username, avatarUrl, getLogger());
 
+        WebhookQueue queue = new WebhookQueue(this, webhook, getLogger());
+        queue.configure(
+                getConfig().getBoolean("discord.retry-enabled", true),
+                getConfig().getInt("discord.retry-max-attempts", 5),
+                getConfig().getInt("discord.retry-interval-seconds", 30));
+        queue.start();
+
         int httpPort = getConfig().getInt("http-server.port", 8734);
         String httpBind = getConfig().getString("http-server.bind", "0.0.0.0");
         long maxFileSizeMb = getConfig().getLong("evidence.max-file-size-mb", 25);
         int maxFiles = getConfig().getInt("evidence.max-files", 10);
 
-        evidenceManager = new EvidenceManager(this, webhook, null);
+        evidenceManager = new EvidenceManager(this, webhook, queue, null);
         evidenceManager.reloadConfig();
 
         httpServer = new HttpUploadServer(getLogger(), evidenceManager);

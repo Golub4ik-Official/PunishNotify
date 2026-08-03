@@ -11,8 +11,8 @@ import punishnotify.PendingPunishment;
 import punishnotify.PunishNotifyPlugin;
 import punishnotify.PunishmentType;
 import punishnotify.webhook.DiscordWebhook;
+import punishnotify.webhook.WebhookQueue;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +27,7 @@ public class EvidenceManager {
 
     private final PunishNotifyPlugin plugin;
     private final DiscordWebhook webhook;
+    private final WebhookQueue queue;
     private final HttpUploadServer httpServer;
     private final Logger logger;
 
@@ -36,9 +37,10 @@ public class EvidenceManager {
     private String publicUrl;
 
     public EvidenceManager(PunishNotifyPlugin plugin, DiscordWebhook webhook,
-                          HttpUploadServer httpServer) {
+                          WebhookQueue queue, HttpUploadServer httpServer) {
         this.plugin = plugin;
         this.webhook = webhook;
+        this.queue = queue;
         this.httpServer = httpServer;
         this.logger = plugin.getLogger();
     }
@@ -83,9 +85,9 @@ public class EvidenceManager {
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (pending.remove(token) != null) {
                 tasks.remove(token);
-                webhook.sendAsync(punishment, Collections.emptyList());
+                queue.submit(punishment, Collections.emptyList(), "таймаут");
                 logger.info("Таймаут доказательств для " + playerName
-                        + " (" + type.displayName() + ") — вебхук отправлен без файлов.");
+                        + " (" + type.displayName() + ") — вебхук поставлен в очередь без файлов.");
             }
         }, timeoutSeconds * 20L);
         tasks.put(token, task);
@@ -96,13 +98,13 @@ public class EvidenceManager {
                 ? Bukkit.getPlayer(p.moderatorUuid()) : null;
         if (moderator == null) {
             if (p.moderatorUuid() == null) {
-                webhook.sendAsync(p, Collections.emptyList());
+                queue.submit(p, Collections.emptyList(), "наказание из консоли");
                 logger.info("Наказание от консоли для " + p.playerName()
-                        + " — вебхук отправлен без доказательств.");
+                        + " — вебхук поставлен в очередь без доказательств.");
             } else {
-                webhook.sendAsync(p, Collections.emptyList());
+                queue.submit(p, Collections.emptyList(), "модератор оффлайн");
                 logger.info("Модератор оффлайн для " + p.playerName()
-                        + " — вебхук отправлен без доказательств.");
+                        + " — вебхук поставлен в очередь без доказательств.");
             }
             pending.remove(p.token());
             BukkitTask task = tasks.remove(p.token());
@@ -140,10 +142,9 @@ public class EvidenceManager {
             return;
         }
         cancelTimeout(token);
-        webhook.sendAsync(p, files);
-        deleteFiles(files);
-        logger.info("Вебхук отправлен для " + p.playerName()
-                + " (" + p.type().displayName() + ") с " + files.size() + " файлами.");
+        queue.submit(p, files, "доказательства");
+        logger.info("Вебхук для " + p.playerName() + " (" + p.type().displayName()
+                + ") отправляется с " + files.size() + " файлами.");
     }
 
     public void skip(String token) {
@@ -153,9 +154,9 @@ public class EvidenceManager {
             return;
         }
         cancelTimeout(token);
-        webhook.sendAsync(p, Collections.emptyList());
-        logger.info("Вебхук отправлен для " + p.playerName()
-                + " (" + p.type().displayName() + ") без доказательств.");
+        queue.submit(p, Collections.emptyList(), "пропуск");
+        logger.info("Вебхук для " + p.playerName() + " (" + p.type().displayName()
+                + ") отправляется без доказательств.");
     }
 
     public boolean hasToken(String token) {
@@ -169,23 +170,15 @@ public class EvidenceManager {
         }
     }
 
-    private void deleteFiles(List<Path> files) {
-        for (Path file : files) {
-            try {
-                Files.deleteIfExists(file);
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
     public void shutdown() {
         for (BukkitTask task : tasks.values()) {
             task.cancel();
         }
         tasks.clear();
         for (PendingPunishment p : pending.values()) {
-            webhook.sendAsync(p, Collections.emptyList());
+            queue.submit(p, Collections.emptyList(), "выключение сервера");
         }
         pending.clear();
+        queue.shutdown();
     }
 }
