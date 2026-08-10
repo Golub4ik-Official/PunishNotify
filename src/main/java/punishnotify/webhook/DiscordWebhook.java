@@ -133,36 +133,57 @@ public class DiscordWebhook {
 
         json.append(",\"embeds\":[");
         json.append("{");
-        json.append("\"title\":").append(jsonString(p.type().emoji() + " " + p.type().displayName() + ": " + p.playerName()));
-        json.append(",\"color\":").append(p.type().color());
-        json.append(",\"timestamp\":").append(jsonString(Instant.ofEpochMilli(p.createdAt()).toString()));
-        json.append(",\"fields\":[");
+        
+        // Author
+        json.append("\"author\":{");
+        json.append("\"name\":").append(jsonString("Сервер " + (p.serverName() != null ? p.serverName() : "Survival")));
+        json.append(",\"icon_url\":").append(jsonString("https://i.imgur.com/bKjL0Z8.png"));
+        json.append("},");
 
-        appendField(json, "Игрок", "`" + p.playerName() + "`\n" + p.playerUuid(), true);
+        // Title and Color
+        json.append("\"title\":").append(jsonString(p.type().emoji() + " " + p.type().displayName() + " аккаунта"));
+        json.append(",\"color\":").append(p.type().color());
+        
+        // Thumbnail (Player Head)
+        json.append(",\"thumbnail\":{");
+        String uuid = p.playerUuid() != null ? p.playerUuid().toString() : p.playerName();
+        json.append("\"url\":").append(jsonString("https://mc-heads.net/avatar/" + uuid + "/100"));
+        json.append("},");
+        
+        json.append("\"fields\":[");
+
+        appendField(json, "👤 Игрок", "``" + p.playerName() + "``", true);
         json.append(',');
-        appendField(json, "Модератор", p.moderatorName() != null ? "`" + p.moderatorName() + "`" : "Консоль", true);
+        appendField(json, "🛡 Модератор", p.moderatorName() != null ? "``" + p.moderatorName() + "``" : "``Консоль``", true);
         json.append(',');
+        
+        if (!p.isPermanent()) {
+            appendField(json, "⏳ Срок", p.durationText(), true);
+            json.append(',');
+        } else {
+            appendField(json, "⏳ Срок", "Навсегда", true);
+            json.append(',');
+        }
 
         if (p.reason() != null && !p.reason().isBlank()) {
-            appendField(json, "Причина", p.reason(), false);
-            json.append(',');
+            appendField(json, "📝 Причина", p.reason(), false);
+        } else {
+            appendField(json, "📝 Причина", "Не указана", false);
         }
 
-        if (!p.isPermanent()) {
-            appendField(json, "Длительность", p.durationText(), true);
-            json.append(',');
-        }
-
-        appendField(json, "Сервер", p.serverName() != null ? p.serverName() : "Неизвестен", true);
-        json.append(',');
-        appendField(json, "Время", TIME_FORMAT.format(Instant.ofEpochMilli(p.createdAt())), true);
-
-        json.append("],");
+        json.append("]");
+        
         if (imageAttachmentUrl != null) {
-            json.append("\"image\":{\"url\":").append(jsonString(imageAttachmentUrl)).append("},");
+            json.append(",\"image\":{\"url\":").append(jsonString(imageAttachmentUrl)).append("}");
         }
-        json.append("\"footer\":{\"text\":\"PunishNotify\"}}");
+        
+        json.append(",\"timestamp\":").append(jsonString(Instant.ofEpochMilli(p.createdAt()).toString()));
+        json.append(",\"footer\":{");
+        json.append("\"text\":\"PunishNotify System\",");
+        json.append("\"icon_url\":\"https://i.imgur.com/YlYn91m.png\"");
+        json.append("}");
 
+        json.append("}");
         json.append("]}");
         return json.toString();
     }
