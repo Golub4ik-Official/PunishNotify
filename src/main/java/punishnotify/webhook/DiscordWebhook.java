@@ -137,7 +137,7 @@ public class DiscordWebhook {
         // Author
         json.append("\"author\":{");
         json.append("\"name\":").append(jsonString("Сервер " + (p.serverName() != null ? p.serverName() : "Survival")));
-        json.append(",\"icon_url\":").append(jsonString("https://i.imgur.com/bKjL0Z8.png"));
+        json.append(",\"icon_url\":").append(jsonString("https://mc-heads.net/avatar/MHF_Exclamation/100"));
         json.append("},");
 
         // Title and Color
@@ -180,7 +180,7 @@ public class DiscordWebhook {
         json.append(",\"timestamp\":").append(jsonString(Instant.ofEpochMilli(p.createdAt()).toString()));
         json.append(",\"footer\":{");
         json.append("\"text\":\"PunishNotify System\",");
-        json.append("\"icon_url\":\"https://i.imgur.com/YlYn91m.png\"");
+        json.append("\"icon_url\":\"https://mc-heads.net/avatar/MHF_Exclamation/100\"");
         json.append("}");
 
         json.append("}");
