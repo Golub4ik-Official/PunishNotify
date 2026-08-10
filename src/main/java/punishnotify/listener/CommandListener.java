@@ -124,7 +124,7 @@ public class CommandListener implements Listener {
         if (online != null) {
             return online.getUniqueId();
         }
-        OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
+        OfflinePlayer offline = Bukkit.getOfflinePlayerIfCached(name);
         return offline != null ? offline.getUniqueId() : null;
     }
 

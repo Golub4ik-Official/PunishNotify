@@ -187,6 +187,8 @@ public class HttpUploadServer {
 
                 if (filename == null || !isAllowedExtension(filename)) {
                     consumePartContent(in, delim, null, Long.MAX_VALUE);
+                } else if (files.size() >= maxFiles) {
+                    throw new IOException("Превышен лимит файлов: " + maxFiles);
                 } else {
                     Path file = tempDir.resolve(filename);
                     long bytesWritten = consumePartContent(in, delim, file, maxFileSizeBytes);

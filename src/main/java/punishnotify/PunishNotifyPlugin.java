@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 public class PunishNotifyPlugin extends JavaPlugin {
 
     private DiscordWebhook webhook;
+    private WebhookQueue queue;
     private EvidenceManager evidenceManager;
     private HttpUploadServer httpServer;
 
@@ -51,13 +52,40 @@ public class PunishNotifyPlugin extends JavaPlugin {
     }
 
     public void reinitializeComponents() {
+        reloadConfig();
+        if (webhook != null) {
+            webhook.reload(
+                    getConfig().getString("discord.webhook-url", ""),
+                    getConfig().getString("discord.username", "PunishNotify"),
+                    getConfig().getString("discord.avatar-url", "")
+            );
+        }
+        if (queue != null) {
+            queue.configure(
+                    getConfig().getBoolean("discord.retry-enabled", true),
+                    getConfig().getInt("discord.retry-max-attempts", 5),
+                    getConfig().getInt("discord.retry-interval-seconds", 30)
+            );
+        }
         if (evidenceManager != null) {
-            evidenceManager.shutdown();
+            evidenceManager.reloadConfig();
         }
         if (httpServer != null) {
             httpServer.stop();
+            httpServer.loadConfig(
+                    getConfig().getInt("http-server.port", 8734),
+                    getConfig().getString("http-server.bind", "0.0.0.0"),
+                    getConfig().getLong("evidence.max-file-size-mb", 25),
+                    getConfig().getInt("evidence.max-files", 10)
+            );
+            loadUploadPage();
+            if (getConfig().getBoolean("http-server.enabled", true)) {
+                httpServer.start(
+                        getConfig().getInt("http-server.port", 8734),
+                        getConfig().getString("http-server.bind", "0.0.0.0")
+                );
+            }
         }
-        initializeComponents();
     }
 
     private void initializeComponents() {
@@ -67,7 +95,7 @@ public class PunishNotifyPlugin extends JavaPlugin {
 
         webhook = new DiscordWebhook(webhookUrl, username, avatarUrl, getLogger());
 
-        WebhookQueue queue = new WebhookQueue(this, webhook, getLogger());
+        queue = new WebhookQueue(this, webhook, getLogger());
         queue.configure(
                 getConfig().getBoolean("discord.retry-enabled", true),
                 getConfig().getInt("discord.retry-max-attempts", 5),

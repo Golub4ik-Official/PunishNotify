@@ -26,15 +26,8 @@ public class EssentialsListener implements Listener {
         net.ess3.api.IUser affected = event.getAffected();
         net.ess3.api.IUser controller = event.getController();
 
-        String moderatorName = "Консоль";
-        UUID moderatorUuid = null;
-        if (controller != null) {
-            Player base = controller.getBase();
-            if (base instanceof Player player) {
-                moderatorName = player.getName();
-                moderatorUuid = player.getUniqueId();
-            }
-        }
+        String moderatorName = controller != null && controller.getBase() instanceof Player p ? p.getName() : "Консоль";
+        UUID moderatorUuid = controller != null && controller.getBase() instanceof Player p ? p.getUniqueId() : null;
 
         PunishmentType type = event.getValue() ? PunishmentType.MUTE : PunishmentType.UNMUTE;
         long durationSeconds = -1;
@@ -64,15 +57,8 @@ public class EssentialsListener implements Listener {
         net.ess3.api.IUser affected = event.getAffected();
         net.ess3.api.IUser controller = event.getController();
 
-        String moderatorName = "Консоль";
-        UUID moderatorUuid = null;
-        if (controller != null) {
-            Player base = controller.getBase();
-            if (base instanceof Player player) {
-                moderatorName = player.getName();
-                moderatorUuid = player.getUniqueId();
-            }
-        }
+        String moderatorName = controller != null && controller.getBase() instanceof Player p ? p.getName() : "Консоль";
+        UUID moderatorUuid = controller != null && controller.getBase() instanceof Player p ? p.getUniqueId() : null;
 
         PunishmentType type = event.getValue() ? PunishmentType.JAIL : PunishmentType.UNJAIL;
 
@@ -100,15 +86,8 @@ public class EssentialsListener implements Listener {
         String playerName = kicked.getName();
         UUID playerUuid = kicked.getUUID();
 
-        String moderatorName = "Консоль";
-        UUID moderatorUuid = null;
-        if (kicker != null) {
-            Player kickerBase = kicker.getBase();
-            if (kickerBase instanceof Player player) {
-                moderatorName = player.getName();
-                moderatorUuid = player.getUniqueId();
-            }
-        }
+        String moderatorName = kicker != null && kicker.getBase() instanceof Player p ? p.getName() : "Консоль";
+        UUID moderatorUuid = kicker != null && kicker.getBase() instanceof Player p ? p.getUniqueId() : null;
 
         evidenceManager.onPunishment(
                 PunishmentType.KICK,

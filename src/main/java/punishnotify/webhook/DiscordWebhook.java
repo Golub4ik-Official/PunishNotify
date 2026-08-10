@@ -26,9 +26,9 @@ public class DiscordWebhook {
     private static final DateTimeFormatter TIME_FORMAT =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
 
-    private final String webhookUrl;
-    private final String username;
-    private final String avatarUrl;
+    private String webhookUrl;
+    private String username;
+    private String avatarUrl;
     private final HttpClient client;
     private final Logger logger;
 
@@ -40,6 +40,12 @@ public class DiscordWebhook {
         this.client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
+    }
+
+    public void reload(String webhookUrl, String username, String avatarUrl) {
+        this.webhookUrl = webhookUrl == null ? "" : webhookUrl.trim();
+        this.username = username;
+        this.avatarUrl = avatarUrl;
     }
 
     public boolean enabled() {
@@ -61,7 +67,7 @@ public class DiscordWebhook {
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
                     .build();
 
-            return client.sendAsync(request, HttpResponse.BodyHandlers.discarding())
+            return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenApply(response -> {
                         boolean ok = response.statusCode() >= 200 && response.statusCode() < 300;
                         if (ok) {
@@ -69,7 +75,8 @@ public class DiscordWebhook {
                                     + " (" + punishment.type().displayName() + "), HTTP " + response.statusCode());
                         } else {
                             logger.warning("Вебхук для " + punishment.playerName()
-                                    + " (" + punishment.type().displayName() + ") отклонён Discord: HTTP " + response.statusCode());
+                                    + " (" + punishment.type().displayName() + ") отклонён Discord: HTTP " 
+                                    + response.statusCode() + " - " + response.body());
                         }
                         return ok;
                     })

@@ -1,241 +1,475 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PunishNotify — Загрузка доказательств</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center}
-.container{max-width:520px;width:90%;padding:32px;background:#16213e;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
-h1{font-size:24px;color:#e94560;margin-bottom:4px}
-.subtitle{color:#888;font-size:14px;margin-bottom:24px}
-.dropzone{border:2px dashed #444;border-radius:8px;padding:40px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px}
-.dropzone:hover,.dropzone.dragover{border-color:#e94560;background:rgba(233,69,96,.08)}
-.dropzone p{color:#888;font-size:15px}
-.dropzone .icon{font-size:40px;margin-bottom:8px}
-.file-list{margin-bottom:16px;max-height:200px;overflow-y:auto}
-.file-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#0f3460;border-radius:6px;margin-bottom:6px;font-size:14px}
-.file-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
-.file-item .size{color:#888;font-size:12px;margin-right:8px}
-.file-item .remove{color:#e94560;cursor:pointer;font-size:18px;line-height:1}
-.file-item .remove:hover{color:#ff6b6b}
-.file-item.error{border:1px solid #e94560}
-.file-item.error .name{color:#e94560}
-.info{font-size:13px;color:#666;margin-bottom:16px}
-.info b{color:#999}
-.progress{margin-bottom:16px;display:none}
-.progress-bar{height:6px;background:#0f3460;border-radius:3px;overflow:hidden}
-.progress-fill{height:100%;background:#e94560;border-radius:3px;width:0;transition:width .3s}
-.progress-text{font-size:13px;color:#888;margin-top:6px;text-align:center}
-.buttons{display:flex;gap:12px}
-.btn{flex:1;padding:12px;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:.2s}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-upload{background:#e94560;color:#fff}
-.btn-upload:hover:not(:disabled){background:#ff6b6b}
-.btn-skip{background:#333;color:#ccc}
-.btn-skip:hover{background:#444}
-.result{display:none;text-align:center;padding:20px;font-size:16px;margin-top:16px}
-.result.success{color:#57f287}
-.result.error{color:#e94560}
-#fileInput{display:none}
-</style>
-</head>
-<body>
-<div class="container">
-<h1>PunishNotify</h1>
-<p class="subtitle">Загрузка доказательств</p>
-
-<div class="dropzone" id="dropzone">
-<div class="icon">&#128467;</div>
-<p>Перетащите файлы сюда или нажмите для выбора</p>
-<p style="font-size:12px;margin-top:8px;color:#555">Макс. 25 МБ на файл</p>
-</div>
-<input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf">
-
-<div class="file-list" id="fileList"></div>
-<div class="info">Макс. файлов: <b>10</b> | Форматы: <b>png, jpg, gif, webp, mp4, webm, pdf</b></div>
-
-<div class="progress" id="progress">
-<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-<div class="progress-text" id="progressText">Загрузка...</div>
-</div>
-
-<div class="buttons" id="buttons">
-<button class="btn btn-upload" id="uploadBtn" disabled>Загрузить</button>
-<button class="btn btn-skip" id="skipBtn">Пропустить</button>
-</div>
-
-<div class="result" id="result"></div>
-</div>
-
-<script>
-const TOKEN="{{TOKEN}}";
-const MAX_SIZE = 25 * 1024 * 1024;
-const MAX_FILES = 10;
-let files = [];
-
-const dropzone = document.getElementById('dropzone');
-const fileInput = document.getElementById('fileInput');
-const fileList = document.getElementById('fileList');
-const uploadBtn = document.getElementById('uploadBtn');
-const skipBtn = document.getElementById('skipBtn');
-const progress = document.getElementById('progress');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const result = document.getElementById('result');
-const buttons = document.getElementById('buttons');
-
-const ALLOWED = ['.png','.jpg','.jpeg','.gif','.webp','.mp4','.webm','.pdf'];
-
-function hasAllowedExt(name) {
-    const lower = name.toLowerCase();
-    return ALLOWED.some(e => lower.endsWith(e));
-}
-
-function formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' Б';
-    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' КБ';
-    return (bytes/(1024*1024)).toFixed(1) + ' МБ';
-}
-
-function addFiles(newFiles) {
-    for (const f of newFiles) {
-        if (files.length >= MAX_FILES) {
-            showFileItem(f.name, f.size, true, 'Лимит файлов exceeded');
-            continue;
-        }
-        if (!hasAllowedExt(f.name)) {
-            showFileItem(f.name, f.size, true, 'Неподдерживаемый формат');
-            continue;
-        }
-        if (f.size > MAX_SIZE) {
-            showFileItem(f.name, f.size, true, 'Файл слишком большой');
-            continue;
-        }
-        files.push(f);
-        showFileItem(f.name, f.size, false);
-    }
-    updateUploadBtn();
-}
-
-function showFileItem(name, size, error, errorMsg) {
-    const div = document.createElement('div');
-    div.className = 'file-item' + (error ? ' error' : '');
-    div.innerHTML = '<span class="name" title="' + escHtml(name) + '">' + escHtml(name) + '</span>'
-        + '<span class="size">' + formatSize(size) + '</span>'
-        + (error ? '<span style="color:#e94560;font-size:12px;margin-right:8px">' + escHtml(errorMsg) + '</span>' : '')
-        + '<span class="remove" data-name="' + escHtml(name) + '">&times;</span>';
-    fileList.appendChild(div);
-}
-
-function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function updateUploadBtn() {
-    uploadBtn.disabled = files.length === 0;
-}
-
-dropzone.addEventListener('click', () => fileInput.click());
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-dropzone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropzone.classList.remove('dragover');
-    addFiles(Array.from(e.dataTransfer.files));
-});
-fileInput.addEventListener('change', () => {
-    addFiles(Array.from(fileInput.files));
-    fileInput.value = '';
-});
-
-fileList.addEventListener('click', e => {
-    if (e.target.classList.contains('remove')) {
-        const name = e.target.getAttribute('data-name');
-        files = files.filter(f => f.name !== name);
-        e.target.parentElement.remove();
-        updateUploadBtn();
-    }
-});
-
-async function upload() {
-    if (files.length === 0) return;
-    const fd = new FormData();
-    files.forEach(f => fd.append('files', f));
-
-    uploadBtn.disabled = true;
-    skipBtn.disabled = true;
-    progress.style.display = 'block';
-    progressFill.style.width = '0%';
-    progressText.textContent = 'Загрузка...';
-
-    try {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/upload?token=' + TOKEN);
-
-        xhr.upload.onprogress = e => {
-            if (e.lengthComputable) {
-                const pct = Math.round(e.loaded / e.total * 100);
-                progressFill.style.width = pct + '%';
-                progressText.textContent = 'Загрузка... ' + pct + '%';
-            }
-        };
-
-        const resp = await new Promise((resolve, reject) => {
-            xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    resolve(JSON.parse(xhr.responseText));
-                } else {
-                    reject(new Error('HTTP ' + xhr.status));
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PunishNotify — Загрузка доказательств</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151f32',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        primary: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                        },
+                        danger: {
+                            500: '#ef4444',
+                            600: '#dc2626',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'slide-up': 'slideUp 0.4s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
                 }
-            };
-            xhr.onerror = () => reject(new Error('Ошибка сети'));
-            xhr.send(fd);
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            background-image: radial-gradient(circle at 50% -20%, #1e293b 0%, #0f172a 80%);
+            background-attachment: fixed;
+            color: #f8fafc;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .file-item-enter {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        /* Custom scrollbar for file list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 antialiased selection:bg-primary-500 selection:text-white">
+
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-6 sm:p-8 animate-fade-in flex flex-col relative overflow-hidden">
+        
+        <!-- Glow effect behind content -->
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary-600 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-danger-600 rounded-full mix-blend-multiply filter blur-[80px] opacity-20 pointer-events-none"></div>
+
+        <div class="relative z-10">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-2">PunishNotify</h1>
+                <p class="text-slate-400 text-sm sm:text-base">Загрузка доказательств наказания</p>
+            </div>
+
+            <!-- Dropzone -->
+            <div id="dropzone" class="relative group cursor-pointer border-2 border-dashed border-slate-600 rounded-xl p-8 transition-all duration-300 hover:border-primary-500 hover:bg-slate-800/50 mb-4 bg-slate-800/20">
+                <div class="flex flex-col items-center justify-center space-y-3 text-center">
+                    <div class="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center text-primary-400 group-hover:scale-110 transition-transform duration-300 group-hover:bg-primary-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-slate-300 text-sm sm:text-base font-medium">Нажмите или перетащите файлы</p>
+                        <p class="text-slate-500 text-xs mt-1">До 10 файлов, макс. 25 МБ каждый</p>
+                    </div>
+                </div>
+            </div>
+            <input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf" class="hidden">
+
+            <!-- File List -->
+            <div id="fileList" class="custom-scrollbar max-h-48 overflow-y-auto space-y-2 mb-4 pr-1"></div>
+
+            <!-- Progress Bar -->
+            <div id="progressContainer" class="hidden mb-6 animate-slide-up">
+                <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                    <span id="progressText">Загрузка...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden backdrop-blur-sm border border-slate-600/30">
+                    <div id="progressFill" class="bg-gradient-to-r from-primary-500 to-indigo-500 h-2 rounded-full transition-all duration-300 w-0 shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div id="actionsContainer" class="grid grid-cols-2 gap-3 mt-2">
+                <button id="skipBtn" class="py-2.5 px-4 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white font-medium transition-colors duration-200 border border-slate-700 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    Пропустить
+                </button>
+                <button id="uploadBtn" disabled class="py-2.5 px-4 rounded-lg bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-medium hover:from-primary-500 hover:to-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    Загрузить
+                </button>
+            </div>
+
+            <!-- Result Message -->
+            <div id="resultContainer" class="hidden mt-4 text-center p-4 rounded-lg border text-sm animate-fade-in backdrop-blur-md"></div>
+        </div>
+    </div>
+
+    <script>
+        const TOKEN = "{{TOKEN}}";
+        const MAX_SIZE = 25 * 1024 * 1024;
+        const MAX_FILES = 10;
+        let files = [];
+
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const skipBtn = document.getElementById('skipBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+        const actionsContainer = document.getElementById('actionsContainer');
+        const resultContainer = document.getElementById('resultContainer');
+
+        const ALLOWED = ['.png','.jpg','.jpeg','.gif','.webp','.mp4','.webm','.pdf'];
+
+        function hasAllowedExt(name) {
+            const lower = name.toLowerCase();
+            return ALLOWED.some(e => lower.endsWith(e));
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function getFileIcon(name) {
+            const lower = name.toLowerCase();
+            if (lower.endsWith('.pdf')) {
+                return \`<svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>\`;
+            } else if (lower.endsWith('.mp4') || lower.endsWith('.webm')) {
+                return \`<svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>\`;
+            } else {
+                return \`<svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>\`;
+            }
+        }
+
+        function addFiles(newFiles) {
+            for (const f of newFiles) {
+                if (files.length >= MAX_FILES) {
+                    showErrorToast('Достигнут лимит в ' + MAX_FILES + ' файлов');
+                    break;
+                }
+                if (!hasAllowedExt(f.name)) {
+                    showFileItem(f.name, f.size, true, 'Формат не поддерживается');
+                    continue;
+                }
+                if (f.size > MAX_SIZE) {
+                    showFileItem(f.name, f.size, true, 'Файл превышает 25 МБ');
+                    continue;
+                }
+                files.push(f);
+                showFileItem(f.name, f.size, false);
+            }
+            updateUploadBtn();
+        }
+
+        let toastTimeout;
+        function showErrorToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-danger-600/90 text-white px-4 py-2 rounded-lg shadow-lg backdrop-blur-sm text-sm animate-slide-up z-50 border border-danger-500/50';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showFileItem(name, size, isError, errorMsg) {
+            const div = document.createElement('div');
+            div.className = \`file-item-enter flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border \${isError ? 'border-danger-500/50' : 'border-slate-700/50'} group\`;
+            
+            div.innerHTML = \`
+                <div class="flex items-center space-x-3 overflow-hidden flex-1">
+                    <div class="flex-shrink-0 bg-slate-900/50 p-2 rounded-lg">
+                        \${getFileIcon(name)}
+                    </div>
+                    <div class="flex flex-col overflow-hidden w-full">
+                        <span class="text-sm font-medium text-slate-200 truncate" title="\${escHtml(name)}">\${escHtml(name)}</span>
+                        <div class="flex items-center text-xs space-x-2">
+                            <span class="text-slate-500">\${formatSize(size)}</span>
+                            \${isError ? \`<span class="text-danger-400 font-medium truncate">\${escHtml(errorMsg)}</span>\` : ''}
+                        </div>
+                    </div>
+                </div>
+                <button class="remove-btn flex-shrink-0 ml-3 p-1.5 text-slate-500 hover:text-danger-400 hover:bg-danger-500/10 rounded-md transition-colors" data-name="\${escHtml(name)}" title="Удалить">
+                    <svg class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            \`;
+            fileList.appendChild(div);
+            
+            // Scroll to bottom
+            fileList.scrollTop = fileList.scrollHeight;
+        }
+
+        function escHtml(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function updateUploadBtn() {
+            uploadBtn.disabled = files.length === 0;
+            if (files.length > 0) {
+                dropzone.classList.add('hidden');
+                dropzone.classList.remove('border-primary-500');
+            } else {
+                dropzone.classList.remove('hidden');
+            }
+        }
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
         });
 
-        progressFill.style.width = '100%';
-        progressText.textContent = 'Загружено!';
-        showResult('success', 'Доказательства загружены (' + resp.files + ' файл(ов)). Вы можете закрыть эту страницу.');
-        buttons.style.display = 'none';
-
-    } catch (err) {
-        progressText.textContent = 'Ошибка: ' + err.message;
-        progressFill.style.background = '#e94560';
-        showResult('error', 'Ошибка загрузки: ' + err.message);
-        uploadBtn.disabled = false;
-        skipBtn.disabled = false;
-    }
-}
-
-async function skip() {
-    skipBtn.disabled = true;
-    uploadBtn.disabled = true;
-    try {
-        const resp = await fetch('/skip?token=' + TOKEN, { method: 'POST' });
-        if (resp.ok) {
-            showResult('success', 'Вебхук будет отправлен без доказательств. Вы можете закрыть эту страницу.');
-            buttons.style.display = 'none';
-        } else {
-            showResult('error', 'Ошибка: HTTP ' + resp.status);
-            skipBtn.disabled = false;
-            uploadBtn.disabled = false;
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
         }
-    } catch (err) {
-        showResult('error', 'Ошибка: ' + err.message);
-        skipBtn.disabled = false;
-        uploadBtn.disabled = false;
-    }
-}
 
-function showResult(type, msg) {
-    result.className = 'result ' + type;
-    result.textContent = msg;
-    result.style.display = 'block';
-}
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.add('border-primary-500', 'bg-slate-800/70');
+            });
+        });
 
-uploadBtn.addEventListener('click', upload);
-skipBtn.addEventListener('click', skip);
-</script>
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.remove('border-primary-500', 'bg-slate-800/70');
+            });
+        });
+
+        dropzone.addEventListener('drop', e => {
+            addFiles(Array.from(e.dataTransfer.files));
+        });
+
+        fileInput.addEventListener('change', () => {
+            addFiles(Array.from(fileInput.files));
+            fileInput.value = '';
+        });
+
+        fileList.addEventListener('click', e => {
+            const removeBtn = e.target.closest('.remove-btn');
+            if (removeBtn) {
+                const name = removeBtn.getAttribute('data-name');
+                files = files.filter(f => f.name !== name);
+                
+                const item = removeBtn.closest('.file-item-enter');
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(-10px)';
+                item.style.transition = 'all 0.2s ease';
+                
+                setTimeout(() => {
+                    item.remove();
+                    updateUploadBtn();
+                }, 200);
+            }
+        });
+
+        async function upload() {
+            if (files.length === 0) return;
+            const fd = new FormData();
+            files.forEach(f => fd.append('files', f));
+
+            uploadBtn.disabled = true;
+            skipBtn.disabled = true;
+            progressContainer.classList.remove('hidden');
+            progressFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+            
+            // Add a subtle pulse animation to the upload button
+            uploadBtn.innerHTML = \`
+                <div class="flex items-center justify-center space-x-2">
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Отправка...</span>
+                </div>
+            \`;
+
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/upload?token=' + TOKEN);
+
+                xhr.upload.onprogress = e => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round(e.loaded / e.total * 100);
+                        progressFill.style.width = pct + '%';
+                        progressPercent.textContent = pct + '%';
+                        if (pct === 100) {
+                            progressText.textContent = 'Обработка...';
+                        }
+                    }
+                };
+
+                const resp = await new Promise((resolve, reject) => {
+                    xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            resolve(JSON.parse(xhr.responseText));
+                        } else {
+                            try {
+                                const err = JSON.parse(xhr.responseText);
+                                reject(new Error(err.error || 'HTTP ' + xhr.status));
+                            } catch(e) {
+                                reject(new Error('HTTP ' + xhr.status));
+                            }
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error('Ошибка сети'));
+                    xhr.send(fd);
+                });
+
+                progressFill.style.width = '100%';
+                progressFill.classList.replace('from-primary-500', 'from-emerald-500');
+                progressFill.classList.replace('to-indigo-500', 'to-emerald-400');
+                progressFill.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.5)';
+                progressText.textContent = 'Успешно!';
+                progressPercent.textContent = '100%';
+                
+                showResult('success', \`
+                    <div class="flex flex-col items-center space-y-2">
+                        <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        </div>
+                        <p class="font-medium text-emerald-400">Доказательства загружены</p>
+                        <p class="text-slate-400 text-xs">Файлов отправлено: \${resp.files}. Можете закрыть страницу.</p>
+                    </div>
+                \`);
+                actionsContainer.classList.add('hidden');
+                fileList.classList.add('hidden');
+
+            } catch (err) {
+                progressText.textContent = 'Ошибка';
+                progressFill.classList.replace('from-primary-500', 'from-danger-500');
+                progressFill.classList.replace('to-indigo-500', 'to-danger-400');
+                progressFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
+                
+                showResult('error', \`
+                    <div class="flex items-center space-x-2 text-danger-400">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span class="font-medium text-left">Ошибка: \${escHtml(err.message)}</span>
+                    </div>
+                \`);
+                
+                uploadBtn.innerHTML = 'Повторить';
+                uploadBtn.disabled = false;
+                skipBtn.disabled = false;
+            }
+        }
+
+        async function skip() {
+            skipBtn.disabled = true;
+            uploadBtn.disabled = true;
+            
+            skipBtn.innerHTML = \`
+                <div class="flex items-center justify-center space-x-2">
+                    <svg class="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Отмена...</span>
+                </div>
+            \`;
+
+            try {
+                const resp = await fetch('/skip?token=' + TOKEN, { method: 'POST' });
+                if (resp.ok) {
+                    showResult('success', \`
+                        <div class="flex flex-col items-center space-y-2">
+                            <div class="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-300 mb-2">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            </div>
+                            <p class="font-medium text-slate-300">Наказание отправлено без доказательств</p>
+                            <p class="text-slate-500 text-xs">Можете закрыть страницу.</p>
+                        </div>
+                    \`);
+                    actionsContainer.classList.add('hidden');
+                    fileList.classList.add('hidden');
+                    dropzone.classList.add('hidden');
+                } else {
+                    let errMsg = 'HTTP ' + resp.status;
+                    try {
+                        const errData = await resp.json();
+                        if (errData.error) errMsg = errData.error;
+                    } catch(e) {}
+                    
+                    showResult('error', \`
+                        <div class="flex items-center space-x-2 text-danger-400">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>Ошибка: \${escHtml(errMsg)}</span>
+                        </div>
+                    \`);
+                    skipBtn.innerHTML = 'Пропустить';
+                    skipBtn.disabled = false;
+                    uploadBtn.disabled = false;
+                }
+            } catch (err) {
+                showResult('error', \`
+                    <div class="flex items-center space-x-2 text-danger-400">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>Ошибка сети: \${escHtml(err.message)}</span>
+                    </div>
+                \`);
+                skipBtn.innerHTML = 'Пропустить';
+                skipBtn.disabled = false;
+                uploadBtn.disabled = false;
+            }
+        }
+
+        function showResult(type, htmlContent) {
+            resultContainer.innerHTML = htmlContent;
+            resultContainer.classList.remove('hidden', 'border-emerald-500/30', 'bg-emerald-500/10', 'border-danger-500/30', 'bg-danger-500/10');
+            
+            if (type === 'success') {
+                resultContainer.classList.add('border-emerald-500/30', 'bg-emerald-500/5');
+            } else {
+                resultContainer.classList.add('border-danger-500/30', 'bg-danger-500/10');
+            }
+        }
+
+        uploadBtn.addEventListener('click', upload);
+        skipBtn.addEventListener('click', skip);
+    </script>
 </body>
 </html>
