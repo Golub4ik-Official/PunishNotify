@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "punishnotify"
-version = "1.1.7"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
