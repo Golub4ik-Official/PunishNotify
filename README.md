@@ -83,6 +83,7 @@ The configuration file is located at `plugins/PunishNotify/config.yml`.
 
 | Path | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
+| **`language`** | `String` | `"en"` | Plugin language code. Built-in: `en`, `ru`. Custom locales can be added in `plugins/PunishNotify/lang/`. |
 | **`discord.webhook-url`** | `String` | `""` | The Discord Webhook URL. Webhooks are disabled if empty. |
 | **`discord.username`** | `String` | `"PunishNotify"` | Custom bot display name in Discord. |
 | **`discord.avatar-url`** | `String` | `""` | Direct image URL for the Discord webhook avatar. |
@@ -198,6 +199,7 @@ Compiled JAR file location: `build/libs/PunishNotify-1.2.0.jar`
 
 | Параметр | Тип | По умолчанию | Описание |
 | :--- | :---: | :---: | :--- |
+| **`language`** | `String` | `"en"` | Код языка плагина. Встроены: `en`, `ru`. Свои локализации можно добавлять в `plugins/PunishNotify/lang/`. |
 | **`discord.webhook-url`** | `String` | `""` | URL вебхука Discord. Если пусто — отправка отключена. |
 | **`discord.username`** | `String` | `"PunishNotify"` | Отображаемое имя бота в Discord. |
 | **`discord.avatar-url`** | `String` | `""` | Прямая ссылка на аватарку бота в Discord. |
