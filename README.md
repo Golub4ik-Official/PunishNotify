@@ -1,100 +1,235 @@
 # PunishNotify
 
-Плагин для Paper **1.21.11** — отправка уведомлений о наказаниях игроков (EssentialsX) в Discord через вебхук с поддержкой прикрепления доказательств (скриншоты, видео).
+> 🛠️ **Discord Punishment Notification Plugin with Web Evidence Attachment for Paper 1.21.11**
 
-## Возможности
+[English Description](#-english) | [Русское описание](#-русский)
 
-- **Уведомления о наказаниях** — бан, разбан, мут, размут, кик, предупреждение, тюрьма, освобождение.
-- **Discord-вебхук** — автоматическая отправка embed с информацией о наказании.
-- **Очередь с ретраями** — если Discord недоступен, вебхук не теряется: доказательства сохраняются и отправка повторяется с интервалом (до N попыток). Очередь в памяти сервера — при перезапуске неотправленные отчёты отбрасываются.
-- **Загрузка доказательств** — при наказании модератору предлагается прикрепить скриншоты/видео:
-  - Кликабельная ссылка в чате → открывает страницу загрузки в браузере
-  - Drag-and-drop или выбор файлов через диалог ОС
-  - Файлы загружаются на сервер и прикрепляются к вебхуку
-  - Первое изображение встраивается в embed, остальные прикрепляются файлами
-  - Файлы удаляются после отправки
-- **Таймаут** — если модератор не прикрепил доказательства за 2 минуты, вебхук отправляется без них.
-- **Пропуск** — модератор может нажать «Пропустить» в чате или на веб-странице.
-- **Настройка событий** — каждое событие можно включить/выключить в конфиге.
+---
 
-## Как это работает
+<a name="-english"></a>
+## 🌐 English
 
-1. Админ наказывает игрока через команды EssentialsX (`/ban`, `/tempban`, `/mute`, `/kick`, `/warn`, `/jail`, `/pardon` и т.д.)
-2. PunishNotify перехватывает наказание:
-   - Мут/размут, тюрьма/освобождение, кик — через события EssentialsX
-   - Бан/временный бан, разбан, предупреждение — через перехват команд
-     (в EssentialsX нет событий для бана и варна, поэтому плагин слушает команды
-     `/ban`, `/tempban`, `/pardon`, `/warn` и их варианты)
-3. Админу в чате появляется сообщение с кнопками **[Загрузить]** и **[Пропустить]**
-4. Если админ нажимает «Загрузить» → открывается страница в браузере с drag-and-drop загрузкой файлов
-5. Файлы отправляются на сервер, прикрепляются к вебхуку, затем удаляются
-6. Если админ нажимает «Пропустить» или ждёт 2 минуты → вебхук отправляется без доказательств
+**PunishNotify** is a powerful, lightweight Minecraft Paper 1.21.11 plugin designed to seamlessly bridge server moderation (via EssentialsX) with your Discord moderation channels.
 
-## Установка
+When a moderator bans, mutes, kicks, warns, or jails a player, **PunishNotify** intercepts the action and initiates a high-speed Discord notification process. What sets PunishNotify apart is its **interactive web-based evidence submission system**: moderators receive an in-game prompt with action buttons allowing them to drag-and-drop screenshots or videos directly via a browser interface before the notification is posted to Discord.
 
-1. Скопируй `PunishNotify.jar` в папку `plugins` сервера.
-2. Перезапустите сервер.
-3. Укажите URL вебхука в `plugins/PunishNotify/config.yml`.
-4. Опционально: откройте порт HTTP-сервера (по умолчанию 8734) в файрволе VPS.
+---
 
-## Команды
+### ✨ Key Features
 
-| Команда | Описание | Права |
-| --- | --- | --- |
-| `/punishnotify reload` | Перезагрузить конфигурацию | `punishnotify.reload` |
-| `/punishnotify skip <token>` | Пропустить загрузку доказательств | `punishnotify.skip` |
+- 📢 **Comprehensive Punishment Tracking**: Automatically detects `ban`, `tempban`, `unban` (pardon), `mute`, `unmute`, `kick`, `warn`, `jail`, and `unjail` events.
+- 🖼️ **Web Evidence Uploader**:
+  - Generates a secure, temporary web upload link sent directly to the moderator in Minecraft chat.
+  - Interactive Drag & Drop web interface built with modern UI.
+  - Supports multiple image and video formats (up to configurable file size & count limits).
+  - Automatically embeds the primary image into the Discord embed while attaching remaining files as message attachments.
+  - Files are automatically deleted from server storage once dispatched.
+- ⏳ **Smart Timeout & Skip Logic**:
+  - Moderators can click **[Skip]** in chat or on the web page to instantly send the webhook without evidence.
+  - Configurable timeout (default: 2 minutes) automatically dispatches the webhook without attachments if no files are uploaded in time.
+- 🔄 **Fault-Tolerant Retry Queue**:
+  - Outages or Discord API rate limits will not cause lost reports.
+  - Failed dispatches enter an in-memory retry queue with configurable attempt counts and backoff intervals.
+- ⚙️ **Granular Event Toggles**: Individually enable or disable webhook notifications for specific punishment types in `config.yml`.
 
-## Права
+---
 
-| Право | По умолчанию | Описание |
-| --- | --- | --- |
-| `punishnotify.admin` | op | Полный доступ; включает `punishnotify.reload` и `punishnotify.skip` |
-| `punishnotify.reload` | op | Перезагрузка конфигурации |
-| `punishnotify.skip` | op | Пропуск загрузки доказательств |
+### 🔄 How It Works
 
-## Конфигурация
+```
+ 1. Moderator executes punishment command (/ban, /mute, /warn, etc.)
+                          │
+                          ▼
+ 2. PunishNotify intercepts event & generates a unique upload token
+                          │
+                          ▼
+ 3. In-Game Prompt sent to Moderator: [Upload Evidence] [Skip]
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+ [Moderator Uploads File]         [Skip or Timeout (120s)]
+          │                               │
+          ▼                               ▼
+ Embed created with images       Embed created without attachments
+          │                               │
+          └───────────────┬───────────────┘
+                          ▼
+ 4. Dispatch to Discord Webhook (with retry queue if API fails)
+```
 
-Конфиг `plugins/PunishNotify/config.yml` создаётся автоматически. Перезагружается через `/punishnotify reload`.
+---
 
-| Параметр | По умолчанию | Описание |
-| --- | --- | --- |
-| `discord.webhook-url` | "" | Discord-вебхук (пусто = выключен) |
-| `discord.username` | PunishNotify | Имя отправителя в Discord |
-| `discord.avatar-url` | "" | URL аватара отправителя |
-| `discord.retry-enabled` | true | Включить очередь с повторными попытками отправки |
-| `discord.retry-max-attempts` | 5 | Макс. попыток отправки (первая + повторы), после чего отчёт отбрасывается |
-| `discord.retry-interval-seconds` | 30 | Интервал повторных попыток (сек.) |
-| `http-server.enabled` | true | Включить HTTP-сервер загрузки |
-| `http-server.port` | 8734 | Порт HTTP-сервера |
-| `http-server.bind` | 0.0.0.0 | Привязка HTTP-сервера |
-| `http-server.public-url` | "" | Публичный адрес для ссылки загрузки доказательств (например `http://server.kibermine.ru`). Пусто = `http://<bind>:<port>` |
-| `evidence.max-file-size-mb` | 25 | Макс. размер файла (МБ) |
-| `evidence.max-files` | 10 | Макс. файлов на наказание |
-| `evidence.timeout-seconds` | 120 | Таймаут ожидания доказательств (сек.) |
-| `events.ban` | true | Уведомления о бане (команды `/ban`, `/tempban`) |
-| `events.unban` | true | Уведомления о разбане (команды `/pardon`, `/unban`) |
-| `events.mute` | true | Уведомления о муте |
-| `events.unmute` | true | Уведомления о размуте |
-| `events.kick` | true | Уведомления о кике |
-| `events.warn` | true | Уведомления о предупреждении (команда `/warn`) |
-| `events.jail` | true | Уведомления о тюрьме |
-| `events.unjail` | true | Уведомления об освобождении |
+### 📜 Commands & Permissions
 
-## Совместимость
+| Command | Permission | Default | Description |
+| :--- | :--- | :---: | :--- |
+| `/punishnotify reload` | `punishnotify.reload` | `op` | Reloads plugin configuration (`config.yml`). |
+| `/punishnotify skip <token>` | `punishnotify.skip` | `op` | Skips evidence uploading for an active punishment token. |
+| *(Admin Super-node)* | `punishnotify.admin` | `op` | Grants full access to all plugin commands and permissions. |
 
-- **EssentialsX 2.20+** — обязательно, указан как `softdepend`. Плагин работает без EssentialsX, но события не будут отслеживаться.
-- **Paper 1.21.11** — обязательно.
+---
 
-## Сборка
+### ⚙️ Configuration Guide (`config.yml`)
 
-Требуется JDK 25:
+The configuration file is located at `plugins/PunishNotify/config.yml`.
+
+| Path | Type | Default | Description |
+| :--- | :---: | :---: | :--- |
+| **`discord.webhook-url`** | `String` | `""` | The Discord Webhook URL. Webhooks are disabled if empty. |
+| **`discord.username`** | `String` | `"PunishNotify"` | Custom bot display name in Discord. |
+| **`discord.avatar-url`** | `String` | `""` | Direct image URL for the Discord webhook avatar. |
+| **`discord.retry-enabled`** | `Boolean` | `true` | Enables the automatic retry queue for failed webhook transmissions. |
+| **`discord.retry-max-attempts`** | `Integer` | `5` | Maximum delivery attempts before dropping a report. |
+| **`discord.retry-interval-seconds`** | `Integer` | `30` | Time interval (seconds) between retry attempts. |
+| **`http-server.enabled`** | `Boolean` | `true` | Enables the built-in HTTP server for evidence uploading. |
+| **`http-server.port`** | `Integer` | `8734` | Network port for the HTTP upload server. |
+| **`http-server.bind`** | `String` | `"0.0.0.0"` | Network interface IP binding (`0.0.0.0` listens on all interfaces). |
+| **`http-server.public-url`** | `String` | `""` | Public external URL displayed to moderators (e.g. `http://server.example.com:8734`). If empty, defaults to `http://<bind>:<port>`. |
+| **`evidence.max-file-size-mb`** | `Integer` | `25` | Maximum allowed size (in MB) per uploaded file. |
+| **`evidence.max-files`** | `Integer` | `10` | Maximum number of files permitted per punishment report. |
+| **`evidence.timeout-seconds`** | `Integer` | `120` | Waiting period (seconds) before auto-sending report without evidence. |
+| **`events.ban`** | `Boolean` | `true` | Send webhook notifications for player bans (`/ban`, `/tempban`). |
+| **`events.unban`** | `Boolean` | `true` | Send webhook notifications for player unbans (`/pardon`, `/unban`). |
+| **`events.mute`** | `Boolean` | `true` | Send webhook notifications for player mutes. |
+| **`events.unmute`** | `Boolean` | `true` | Send webhook notifications for player unmutes. |
+| **`events.kick`** | `Boolean` | `true` | Send webhook notifications for player kicks. |
+| **`events.warn`** | `Boolean` | `true` | Send webhook notifications for player warnings (`/warn`). |
+| **`events.jail`** | `Boolean` | `true` | Send webhook notifications for player jailing. |
+| **`events.unjail`** | `Boolean` | `true` | Send webhook notifications for player release from jail. |
+
+---
+
+### 📦 Compatibility & Requirements
+
+- **Minecraft Server**: Paper 1.21.11 (or modern Paper forks).
+- **Java Version**: Java 21 or higher.
+- **Dependencies**: [EssentialsX](https://essentialsx.net/) 2.20+ (soft-dependency; required for punishment event tracking).
+
+---
+
+### 🔨 Building from Source
 
 ```bash
+# Clone the repository
+git clone https://github.com/Golub4ik-Official/PunishNotify.git
+
+# Build with Gradle (JDK 25 required)
 ./gradlew build
 ```
 
-Артефакт: `build/libs/PunishNotify.jar`.
+Compiled JAR file location: `build/libs/PunishNotify-1.2.0.jar`
 
-## Разработка
+---
 
-Репозиторий использует GitHub Actions: при пуше тега `v*` плагин автоматически собирается и создаётся Release с `PunishNotify.jar`. Правила для ассистента описаны в [AGENTS.md](AGENTS.md).
+<a name="-русский"></a>
+## 🇷🇺 Русский
+
+**PunishNotify** — это производительный плагин для серверов Paper 1.21.11, организующий интеграцию системы наказаний игрового сервера (EssentialsX) с каналами модерации в Discord.
+
+Когда модератор выдаёт бан, мут, кик, предупреждение или отправляет игрока в тюрьму, **PunishNotify** перехватывает событие и запускает процесc публикации в Discord. Главная особенность плагина — **интерактивная система прикрепления доказательств через веб-интерфейс**: модератору в чате Minecraft выдаётся ссылка с кнопками, открывающая страницу в браузере для быстрой загрузки скриншотов или видео с помощью Drag-and-Drop.
+
+---
+
+### ✨ Основные возможности
+
+- 📢 **Полный отслеживаемый спектр наказаний**: `бан`, `временный бан`, `разбан`, `мут`, `размут`, `кик`, `предупреждение (warn)`, `тюрьма (jail)` и `освобождение`.
+- 🖼️ **Веб-загрузчик доказательств**:
+  - Генерация уникальной безопасной ссылки для загрузки файловых доказательств.
+  - Современный веб-интерфейс загрузки с поддержкой перетаскивания файлов (Drag & Drop).
+  - Поддержка изображений и видеофайлов с гибким ограничением размера и количества.
+  - Автоматическое встраивание первого изображения в embed Discord-сообщения и прикрепление оставшихся файлов к сообщению.
+  - Файлы автоматически удаляются с сервера сразу после отправки.
+- ⏳ **Таймаут и пропуск**:
+  - Возможность нажать **[Пропустить]** в чате или на веб-странице для мгновенной отправки отчёта без файлов.
+  - Настраиваемый таймаут (по умолчанию 2 минуты), по истечении которого отчёт уходит в Discord автоматически без доказательств.
+- 🔄 **Очередь повторной отправки (Retry Queue)**:
+  - Временные сбои сети или ограничение запросов Discord (rate-limit) не приведут к потере отчётов.
+  - Неотправленные отчёты попадают в очередь в памяти с настраиваемым количеством попыток и интервалом повтора.
+- ⚙️ **Гибкое отключение событий**: Возможность включать/отключать уведомления для каждого типа наказаний в `config.yml`.
+
+---
+
+### 🔄 Принцип работы
+
+```
+ 1. Модератор выдаёт наказание (/ban, /mute, /warn и т.д.)
+                          │
+                          ▼
+ 2. PunishNotify перехватывает событие и создаёт токен загрузки
+                          │
+                          ▼
+ 3. Модератор получает кнопки в чате: [Загрузить] [Пропустить]
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+  [Загрузка файлов в UI]           [Пропуск / Таймаут 120с]
+          │                               │
+          ▼                               ▼
+  Embed с медиа-файлами            Embed без вложений
+          │                               │
+          └───────────────┬───────────────┘
+                          ▼
+ 4. Отправка вебхука в Discord (с повторами при сбоях)
+```
+
+---
+
+### 📜 Команды и права
+
+| Команда | Право (Permission) | По умолчанию | Описание |
+| :--- | :--- | :---: | :--- |
+| `/punishnotify reload` | `punishnotify.reload` | `op` | Перезагружает конфигурацию плагина (`config.yml`). |
+| `/punishnotify skip <token>` | `punishnotify.skip` | `op` | Пропускает загрузку доказательств для наказания с указанным токеном. |
+| *(Админ супер-право)* | `punishnotify.admin` | `op` | Полный доступ ко всем командам и правам плагина. |
+
+---
+
+### ⚙️ Гайд по настройке конфигурации (`config.yml`)
+
+Файл конфигурации расположен по пути `plugins/PunishNotify/config.yml`.
+
+| Параметр | Тип | По умолчанию | Описание |
+| :--- | :---: | :---: | :--- |
+| **`discord.webhook-url`** | `String` | `""` | URL вебхука Discord. Если пусто — отправка отключена. |
+| **`discord.username`** | `String` | `"PunishNotify"` | Отображаемое имя бота в Discord. |
+| **`discord.avatar-url`** | `String` | `""` | Прямая ссылка на аватарку бота в Discord. |
+| **`discord.retry-enabled`** | `Boolean` | `true` | Включить повторные попытки при недоступности Discord API. |
+| **`discord.retry-max-attempts`** | `Integer` | `5` | Максимальное количество попыток отправки отчёта. |
+| **`discord.retry-interval-seconds`** | `Integer` | `30` | Интервал между повторными попытками в секундах. |
+| **`http-server.enabled`** | `Boolean` | `true` | Включить встроенный веб-сервер загрузки доказательств. |
+| **`http-server.port`** | `Integer` | `8734` | Порт веб-сервера. |
+| **`http-server.bind`** | `String` | `"0.0.0.0"` | Сетевой IP-интерфейс (`0.0.0.0` — все доступные интерфейсы). |
+| **`http-server.public-url`** | `String` | `""` | Внешний URL для модераторов (например `http://server.example.com:8734`). Если пусто, используется `http://<bind>:<port>`. |
+| **`evidence.max-file-size-mb`** | `Integer` | `25` | Максимальный размер одного файла в мегабайтах. |
+| **`evidence.max-files`** | `Integer` | `10` | Максимальное количество файлов на одно наказание. |
+| **`evidence.timeout-seconds`** | `Integer` | `120` | Таймаут ожидания доказательств (в секундах) перед авто-отправкой. |
+| **`events.ban`** | `Boolean` | `true` | Отправка уведомлений о банах (`/ban`, `/tempban`). |
+| **`events.unban`** | `Boolean` | `true` | Отправка уведомлений о разбанах (`/pardon`, `/unban`). |
+| **`events.mute`** | `Boolean` | `true` | Отправка уведомлений о мутах. |
+| **`events.unmute`** | `Boolean` | `true` | Отправка уведомлений о размутах. |
+| **`events.kick`** | `Boolean` | `true` | Отправка уведомлений о киках. |
+| **`events.warn`** | `Boolean` | `true` | Отправка уведомлений о предупреждениях (`/warn`). |
+| **`events.jail`** | `Boolean` | `true` | Отправка уведомлений о тюрьме. |
+| **`events.unjail`** | `Boolean` | `true` | Отправка уведомлений об освобождении из тюрьмы. |
+
+---
+
+### 📦 Совместимость и требования
+
+- **Сервер Minecraft**: Paper 1.21.11 (или совместимые форки).
+- **Версия Java**: Java 21 и новее.
+- **Зависимости**: [EssentialsX](https://essentialsx.net/) 2.20+ (`softdepend`, необходим для отслеживания событий).
+
+---
+
+### 🔨 Сборка из исходников
+
+```bash
+# Клонировать репозиторий
+git clone https://github.com/Golub4ik-Official/PunishNotify.git
+
+# Собрать через Gradle (требуется JDK 25)
+./gradlew build
+```
+
+Собраный JAR-файл: `build/libs/PunishNotify-1.2.0.jar`
