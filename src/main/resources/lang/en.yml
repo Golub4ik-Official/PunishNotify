@@ -1,0 +1,118 @@
+# PunishNotify - English locale
+# All user-facing strings are defined here.
+# You can copy this file and translate it to create your own language pack.
+
+# -----------------------------------------------------------------------
+# Punishment type display names (used in Discord embeds and player messages)
+# -----------------------------------------------------------------------
+punishment:
+  ban: "Ban"
+  unban: "Unban"
+  mute: "Mute"
+  unmute: "Unmute"
+  kick: "Kick"
+  warn: "Warning"
+  jail: "Jail"
+  unjail: "Release"
+
+# -----------------------------------------------------------------------
+# Discord embed labels
+# -----------------------------------------------------------------------
+embed:
+  server_prefix: "Server "
+  account_suffix: " account"
+  field_player: "👤 Player"
+  field_moderator: "🛡 Moderator"
+  field_duration: "⏳ Duration"
+  field_reason: "📝 Reason"
+  permanent: "Permanent"
+  no_reason: "Not specified"
+  console: "Console"
+  footer: "PunishNotify System"
+
+# -----------------------------------------------------------------------
+# In-game messages sent to the moderator
+# -----------------------------------------------------------------------
+notify:
+  header: "[PunishNotify] "
+  punishment_line: "%s: "        # %s = emoji + type name
+  player_line: "%s"              # %s = player name
+  attach_question: "Attach evidence?"
+  upload_button: " [Upload] "
+  upload_hover: "Open upload page"
+  skip_button: " [Skip] "
+  skip_hover: "Send without evidence"
+
+# -----------------------------------------------------------------------
+# /punishnotify command messages
+# -----------------------------------------------------------------------
+command:
+  no_permission: "You don't have permission to use this command."
+  unknown_subcommand: "Unknown subcommand. Use /punishnotify reload"
+  reload_success: "[PunishNotify] Configuration reloaded."
+  skip_usage: "Usage: /punishnotify skip <token>"
+  token_not_found: "[PunishNotify] Token not found or already processed."
+  skip_success: "[PunishNotify] Webhook sent without evidence."
+
+# -----------------------------------------------------------------------
+# Server log messages (visible in server console)
+# -----------------------------------------------------------------------
+log:
+  enabled: "PunishNotify v%s enabled."
+  disabled: "PunishNotify disabled."
+  listeners_registered: "Punishment command listener registered."
+  essentials_not_found: "EssentialsX not found. Punishment events will not be tracked."
+  essentials_api_error: "EssentialsX API incompatible: %s"
+  essentials_registered: "EssentialsX event listener registered."
+  upload_page_not_found: "Upload page (web/upload.html) not found in resources."
+  upload_page_error: "Error loading upload page: %s"
+  http_server_started: "HTTP upload server started on %s:%s"
+  http_server_stopped: "HTTP upload server stopped."
+  http_server_start_failed: "Failed to start HTTP server: %s"
+  http_error_get: "HTTP error (GET /): %s"
+  http_error_upload: "HTTP error (POST /upload): %s"
+  http_error_skip: "HTTP error (POST /skip): %s"
+  multipart_invalid: "Invalid multipart format: no starting boundary"
+  file_limit_exceeded: "File limit exceeded: %s"
+  webhook_sent: "Webhook sent for %s (%s), HTTP %s"
+  webhook_rejected: "Webhook for %s (%s) rejected by Discord: HTTP %s - %s"
+  webhook_send_error: "Webhook send error: %s"
+  webhook_prepare_error: "Webhook prepare error: %s"
+  timeout_queued: "Evidence timeout for %s (%s) — webhook queued without files."
+  console_punishment: "Console punishment for %s — webhook queued without evidence."
+  moderator_offline: "Moderator offline for %s — webhook queued without evidence."
+  token_not_found: "Token %s not found or already processed."
+  evidence_queued: "Webhook for %s (%s) sent with %s file(s)."
+  skip_queued: "Webhook for %s (%s) sent without evidence."
+  queue_started: "Webhook retry queue started."
+  queue_stopped: "Webhook retry queue stopped."
+  queue_attempt: "Retry attempt %s/%s for %s (%s)..."
+  queue_success: "Webhook delivered on retry for %s (%s)."
+  queue_failed: "Webhook permanently failed after %s attempts for %s (%s)."
+  locale_loaded: "Locale '%s' loaded."
+  locale_not_found: "Locale '%s' not found, falling back to 'en'."
+  locale_fallback_failed: "Failed to load fallback locale 'en'. Using empty locale."
+
+# -----------------------------------------------------------------------
+# Web upload page strings ({{i18n.KEY}} placeholders in upload.html)
+# -----------------------------------------------------------------------
+web:
+  title: "PunishNotify — Evidence Upload"
+  subtitle: "Upload evidence for the punishment"
+  drop_hint: "Click or drag files here"
+  drop_limit: "Up to %s files, max %s MB each"
+  skip_btn: "Skip"
+  upload_btn: "Upload"
+  uploading: "Uploading..."
+  processing: "Processing..."
+  success_title: "Evidence uploaded"
+  success_subtitle: "Files sent: %s. You can close this page."
+  error_prefix: "Error: "
+  error_network: "Network error: "
+  error_format: "Unsupported format"
+  error_too_large: "File exceeds %s MB"
+  error_limit: "File limit of %s reached"
+  skip_loading: "Cancelling..."
+  skip_success_title: "Punishment sent without evidence"
+  skip_success_subtitle: "You can close this page."
+  remove_title: "Remove"

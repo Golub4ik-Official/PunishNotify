@@ -1,5 +1,6 @@
 package punishnotify.webhook;
 
+import punishnotify.LocaleManager;
 import punishnotify.PendingPunishment;
 
 import java.io.ByteArrayOutputStream;
@@ -31,6 +32,7 @@ public class DiscordWebhook {
     private String avatarUrl;
     private final HttpClient client;
     private final Logger logger;
+    private LocaleManager lm;
 
     public DiscordWebhook(String webhookUrl, String username, String avatarUrl, Logger logger) {
         this.webhookUrl = webhookUrl == null ? "" : webhookUrl.trim();
@@ -40,6 +42,10 @@ public class DiscordWebhook {
         this.client = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
+    }
+
+    public void setLocaleManager(LocaleManager lm) {
+        this.lm = lm;
     }
 
     public void reload(String webhookUrl, String username, String avatarUrl) {
@@ -60,8 +66,7 @@ public class DiscordWebhook {
             String boundary = "----PunishNotify" + System.currentTimeMillis();
             byte[] body = buildMultipartBody(punishment, files, boundary);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(webhookUrl))
+            HttpRequest request = HttpRequest.newBuilder(URI.create(webhookUrl))
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                     .timeout(Duration.ofSeconds(30))
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body))
@@ -71,21 +76,25 @@ public class DiscordWebhook {
                     .thenApply(response -> {
                         boolean ok = response.statusCode() >= 200 && response.statusCode() < 300;
                         if (ok) {
-                            logger.info("Вебхук отправлен для " + punishment.playerName()
-                                    + " (" + punishment.type().displayName() + "), HTTP " + response.statusCode());
+                            logger.info(t("log.webhook_sent",
+                                    punishment.playerName(),
+                                    punishment.type().displayName(lm),
+                                    response.statusCode()));
                         } else {
-                            logger.warning("Вебхук для " + punishment.playerName()
-                                    + " (" + punishment.type().displayName() + ") отклонён Discord: HTTP " 
-                                    + response.statusCode() + " - " + response.body());
+                            logger.warning(t("log.webhook_rejected",
+                                    punishment.playerName(),
+                                    punishment.type().displayName(lm),
+                                    response.statusCode(),
+                                    response.body()));
                         }
                         return ok;
                     })
                     .exceptionally(ex -> {
-                        logger.log(Level.WARNING, "Ошибка отправки вебхука: " + ex.getMessage());
+                        logger.log(Level.WARNING, t("log.webhook_send_error", ex.getMessage()));
                         return false;
                     });
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Ошибка подготовки вебхука: " + e.getMessage());
+            logger.log(Level.WARNING, t("log.webhook_prepare_error", e.getMessage()));
             return CompletableFuture.completedFuture(false);
         }
     }
@@ -133,59 +142,67 @@ public class DiscordWebhook {
 
         json.append(",\"embeds\":[");
         json.append("{");
-        
+
         // Author
+        String serverName = p.serverName() != null ? p.serverName() : "Survival";
         json.append("\"author\":{");
-        json.append("\"name\":").append(jsonString("Сервер " + (p.serverName() != null ? p.serverName() : "Survival")));
+        json.append("\"name\":").append(jsonString(t("embed.server_prefix") + serverName));
         json.append(",\"icon_url\":").append(jsonString("https://mc-heads.net/avatar/MHF_Exclamation/100"));
         json.append("},");
 
         // Title and Color
-        json.append("\"title\":").append(jsonString(p.type().emoji() + " " + p.type().displayName() + " аккаунта"));
+        String typeName = p.type().displayName(lm);
+        json.append("\"title\":").append(jsonString(p.type().emoji() + " " + typeName + t("embed.account_suffix")));
         json.append(",\"color\":").append(p.type().color());
-        
+
         // Thumbnail (Player Head)
         json.append(",\"thumbnail\":{");
         String uuid = p.playerUuid() != null ? p.playerUuid().toString() : p.playerName();
         json.append("\"url\":").append(jsonString("https://mc-heads.net/avatar/" + uuid + "/100"));
         json.append("},");
-        
+
         json.append("\"fields\":[");
 
-        appendField(json, "👤 Игрок", "``" + p.playerName() + "``", true);
+        appendField(json, t("embed.field_player"), "``" + p.playerName() + "``", true);
         json.append(',');
-        appendField(json, "🛡 Модератор", p.moderatorName() != null ? "``" + p.moderatorName() + "``" : "``Консоль``", true);
-        json.append(',');
-        
-        if (!p.isPermanent()) {
-            appendField(json, "⏳ Срок", p.durationText(), true);
-            json.append(',');
-        } else {
-            appendField(json, "⏳ Срок", "Навсегда", true);
-            json.append(',');
-        }
 
-        if (p.reason() != null && !p.reason().isBlank()) {
-            appendField(json, "📝 Причина", p.reason(), false);
+        String moderatorDisplay = p.moderatorName() != null
+                ? "``" + p.moderatorName() + "``"
+                : "``" + t("embed.console") + "``";
+        appendField(json, t("embed.field_moderator"), moderatorDisplay, true);
+        json.append(',');
+
+        if (!p.isPermanent()) {
+            appendField(json, t("embed.field_duration"), p.durationText(), true);
         } else {
-            appendField(json, "📝 Причина", "Не указана", false);
+            appendField(json, t("embed.field_duration"), t("embed.permanent"), true);
         }
+        json.append(',');
+
+        String reason = (p.reason() != null && !p.reason().isBlank()) ? p.reason() : t("embed.no_reason");
+        appendField(json, t("embed.field_reason"), reason, false);
 
         json.append("]");
-        
+
         if (imageAttachmentUrl != null) {
             json.append(",\"image\":{\"url\":").append(jsonString(imageAttachmentUrl)).append("}");
         }
-        
+
         json.append(",\"timestamp\":").append(jsonString(Instant.ofEpochMilli(p.createdAt()).toString()));
         json.append(",\"footer\":{");
-        json.append("\"text\":\"PunishNotify System\",");
+        json.append("\"text\":").append(jsonString(t("embed.footer"))).append(",");
         json.append("\"icon_url\":\"https://mc-heads.net/avatar/MHF_Exclamation/100\"");
         json.append("}");
 
         json.append("}");
         json.append("]}");
         return json.toString();
+    }
+
+    /** Helper: get locale string, with graceful null-lm fallback. */
+    private String t(String key, Object... args) {
+        if (lm == null) return key;
+        return lm.get(key, args);
     }
 
     private void appendField(StringBuilder json, String name, String value, boolean inline) {

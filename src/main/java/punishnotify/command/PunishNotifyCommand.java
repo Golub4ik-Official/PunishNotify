@@ -7,6 +7,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
+import punishnotify.LocaleManager;
 import punishnotify.PunishNotifyPlugin;
 import punishnotify.evidence.EvidenceManager;
 
@@ -23,6 +24,7 @@ public class PunishNotifyCommand implements BasicCommand {
     @Override
     public void execute(@NotNull CommandSourceStack stack, @NotNull String[] args) {
         CommandSender sender = stack.getSender();
+        LocaleManager lm = plugin.getLocaleManager();
 
         if (args.length == 0) {
             sender.sendMessage(Component.text()
@@ -35,43 +37,43 @@ public class PunishNotifyCommand implements BasicCommand {
         }
 
         switch (args[0].toLowerCase()) {
-            case "reload" -> doReload(sender);
-            case "skip" -> doSkip(sender, args);
-            default -> sender.sendMessage(Component.text("Неизвестная подкоманда. Используйте /punishnotify reload", NamedTextColor.RED));
+            case "reload" -> doReload(sender, lm);
+            case "skip" -> doSkip(sender, args, lm);
+            default -> sender.sendMessage(Component.text(lm.get("command.unknown_subcommand"), NamedTextColor.RED));
         }
     }
 
-    private void doReload(CommandSender sender) {
+    private void doReload(CommandSender sender, LocaleManager lm) {
         if (!sender.hasPermission("punishnotify.reload")) {
-            sender.sendMessage(Component.text("У вас нет прав на эту команду.", NamedTextColor.RED));
+            sender.sendMessage(Component.text(lm.get("command.no_permission"), NamedTextColor.RED));
             return;
         }
 
         plugin.reloadConfig();
         plugin.reinitializeComponents();
 
-        sender.sendMessage(Component.text("[PunishNotify] Конфигурация перезагружена.", NamedTextColor.GREEN));
+        sender.sendMessage(Component.text(lm.get("command.reload_success"), NamedTextColor.GREEN));
     }
 
-    private void doSkip(CommandSender sender, String[] args) {
+    private void doSkip(CommandSender sender, String[] args, LocaleManager lm) {
         if (!sender.hasPermission("punishnotify.skip")) {
-            sender.sendMessage(Component.text("У вас нет прав на эту команду.", NamedTextColor.RED));
+            sender.sendMessage(Component.text(lm.get("command.no_permission"), NamedTextColor.RED));
             return;
         }
 
         if (args.length < 2) {
-            sender.sendMessage(Component.text("Использование: /punishnotify skip <token>", NamedTextColor.RED));
+            sender.sendMessage(Component.text(lm.get("command.skip_usage"), NamedTextColor.RED));
             return;
         }
 
         String token = args[1];
         if (!evidenceManager.hasToken(token)) {
-            sender.sendMessage(Component.text("[PunishNotify] Токен не найден или уже обработан.", NamedTextColor.RED));
+            sender.sendMessage(Component.text(lm.get("command.token_not_found"), NamedTextColor.RED));
             return;
         }
 
         evidenceManager.skip(token);
-        sender.sendMessage(Component.text("[PunishNotify] Вебхук отправлен без доказательств.", NamedTextColor.GREEN));
+        sender.sendMessage(Component.text(lm.get("command.skip_success"), NamedTextColor.GREEN));
     }
 
     @Override

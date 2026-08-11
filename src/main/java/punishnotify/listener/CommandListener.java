@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
+import punishnotify.LocaleManager;
 import punishnotify.PunishmentType;
 import punishnotify.evidence.EvidenceManager;
 
@@ -21,9 +22,14 @@ public class CommandListener implements Listener {
     private static final Pattern DURATION_PATTERN = Pattern.compile("(\\d+)(mo|y|d|h|m|w|s)");
 
     private final EvidenceManager evidenceManager;
+    private LocaleManager lm;
 
     public CommandListener(EvidenceManager evidenceManager) {
         this.evidenceManager = evidenceManager;
+    }
+
+    public void setLocaleManager(LocaleManager lm) {
+        this.lm = lm;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -100,7 +106,10 @@ public class CommandListener implements Listener {
 
     private void fire(CommandSender sender, PunishmentType type, String target,
                       String reason, long durationSeconds) {
-        String moderatorName = "Консоль";
+        String consoleName = lm != null ? lm.get("embed.console") : "Console";
+        String noReason = lm != null ? lm.get("embed.no_reason") : "Not specified";
+
+        String moderatorName = consoleName;
         UUID moderatorUuid = null;
         if (sender instanceof Player player) {
             moderatorName = player.getName();
@@ -111,7 +120,7 @@ public class CommandListener implements Listener {
                 type,
                 target,
                 resolvePlayerUuid(target),
-                reason != null && !reason.isBlank() ? reason : "Не указана",
+                reason != null && !reason.isBlank() ? reason : noReason,
                 moderatorName,
                 moderatorUuid,
                 durationSeconds,

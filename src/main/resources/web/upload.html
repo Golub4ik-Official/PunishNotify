@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru" class="dark">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PunishNotify — Загрузка доказательств</title>
+    <title>{{i18n.web.title}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -88,7 +88,7 @@
         <div class="relative z-10">
             <div class="text-center mb-6">
                 <h1 class="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-2">PunishNotify</h1>
-                <p class="text-slate-400 text-sm sm:text-base">Загрузка доказательств наказания</p>
+                <p class="text-slate-400 text-sm sm:text-base">{{i18n.web.subtitle}}</p>
             </div>
 
             <!-- Dropzone -->
@@ -100,8 +100,8 @@
                         </svg>
                     </div>
                     <div>
-                        <p class="text-slate-300 text-sm sm:text-base font-medium">Нажмите или перетащите файлы</p>
-                        <p class="text-slate-500 text-xs mt-1">До 10 файлов, макс. 25 МБ каждый</p>
+                        <p class="text-slate-300 text-sm sm:text-base font-medium">{{i18n.web.drop_hint}}</p>
+                        <p class="text-slate-500 text-xs mt-1">{{i18n.web.drop_limit}}</p>
                     </div>
                 </div>
             </div>
@@ -113,7 +113,7 @@
             <!-- Progress Bar -->
             <div id="progressContainer" class="hidden mb-6 animate-slide-up">
                 <div class="flex justify-between text-xs text-slate-400 mb-1.5">
-                    <span id="progressText">Загрузка...</span>
+                    <span id="progressText">{{i18n.web.uploading}}</span>
                     <span id="progressPercent">0%</span>
                 </div>
                 <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden backdrop-blur-sm border border-slate-600/30">
@@ -124,10 +124,10 @@
             <!-- Actions -->
             <div id="actionsContainer" class="grid grid-cols-2 gap-3 mt-2">
                 <button id="skipBtn" class="py-2.5 px-4 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white font-medium transition-colors duration-200 border border-slate-700 hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900">
-                    Пропустить
+                    {{i18n.web.skip_btn}}
                 </button>
                 <button id="uploadBtn" disabled class="py-2.5 px-4 rounded-lg bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-medium hover:from-primary-500 hover:to-indigo-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-slate-900">
-                    Загрузить
+                    {{i18n.web.upload_btn}}
                 </button>
             </div>
 
@@ -137,6 +137,7 @@
     </div>
 
     <script>
+        /* {{I18N_JS}} */
         const TOKEN = "{{TOKEN}}";
         const MAX_SIZE = 25 * 1024 * 1024;
         const MAX_FILES = 10;
@@ -172,26 +173,26 @@
         function getFileIcon(name) {
             const lower = name.toLowerCase();
             if (lower.endsWith('.pdf')) {
-                return \`<svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>\`;
+                return `<svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`;
             } else if (lower.endsWith('.mp4') || lower.endsWith('.webm')) {
-                return \`<svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>\`;
+                return `<svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>`;
             } else {
-                return \`<svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>\`;
+                return `<svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>`;
             }
         }
 
         function addFiles(newFiles) {
             for (const f of newFiles) {
                 if (files.length >= MAX_FILES) {
-                    showErrorToast('Достигнут лимит в ' + MAX_FILES + ' файлов');
+                    showErrorToast(I18N.error_limit);
                     break;
                 }
                 if (!hasAllowedExt(f.name)) {
-                    showFileItem(f.name, f.size, true, 'Формат не поддерживается');
+                    showFileItem(f.name, f.size, true, I18N.error_format);
                     continue;
                 }
                 if (f.size > MAX_SIZE) {
-                    showFileItem(f.name, f.size, true, 'Файл превышает 25 МБ');
+                    showFileItem(f.name, f.size, true, I18N.error_too_large);
                     continue;
                 }
                 files.push(f);
@@ -217,25 +218,25 @@
 
         function showFileItem(name, size, isError, errorMsg) {
             const div = document.createElement('div');
-            div.className = \`file-item-enter flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border \${isError ? 'border-danger-500/50' : 'border-slate-700/50'} group\`;
+            div.className = `file-item-enter flex items-center justify-between p-3 rounded-xl bg-slate-800/60 border ${isError ? 'border-danger-500/50' : 'border-slate-700/50'} group`;
             
-            div.innerHTML = \`
+            div.innerHTML = `
                 <div class="flex items-center space-x-3 overflow-hidden flex-1">
                     <div class="flex-shrink-0 bg-slate-900/50 p-2 rounded-lg">
-                        \${getFileIcon(name)}
+                        ${getFileIcon(name)}
                     </div>
                     <div class="flex flex-col overflow-hidden w-full">
-                        <span class="text-sm font-medium text-slate-200 truncate" title="\${escHtml(name)}">\${escHtml(name)}</span>
+                        <span class="text-sm font-medium text-slate-200 truncate" title="${escHtml(name)}">${escHtml(name)}</span>
                         <div class="flex items-center text-xs space-x-2">
-                            <span class="text-slate-500">\${formatSize(size)}</span>
-                            \${isError ? \`<span class="text-danger-400 font-medium truncate">\${escHtml(errorMsg)}</span>\` : ''}
+                            <span class="text-slate-500">${formatSize(size)}</span>
+                            ${isError ? `<span class="text-danger-400 font-medium truncate">${escHtml(errorMsg)}</span>` : ''}
                         </div>
                     </div>
                 </div>
-                <button class="remove-btn flex-shrink-0 ml-3 p-1.5 text-slate-500 hover:text-danger-400 hover:bg-danger-500/10 rounded-md transition-colors" data-name="\${escHtml(name)}" title="Удалить">
+                <button class="remove-btn flex-shrink-0 ml-3 p-1.5 text-slate-500 hover:text-danger-400 hover:bg-danger-500/10 rounded-md transition-colors" data-name="${escHtml(name)}" title="${escHtml(I18N.remove_title)}">
                     <svg class="w-4 h-4 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
-            \`;
+            `;
             fileList.appendChild(div);
             
             // Scroll to bottom
@@ -316,17 +317,18 @@
             progressContainer.classList.remove('hidden');
             progressFill.style.width = '0%';
             progressPercent.textContent = '0%';
+            progressText.textContent = I18N.uploading || 'Uploading...';
             
             // Add a subtle pulse animation to the upload button
-            uploadBtn.innerHTML = \`
+            uploadBtn.innerHTML = `
                 <div class="flex items-center justify-center space-x-2">
                     <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Отправка...</span>
+                    <span>${I18N.uploading || '...'}</span>
                 </div>
-            \`;
+            `;
 
             try {
                 const xhr = new XMLHttpRequest();
@@ -338,7 +340,7 @@
                         progressFill.style.width = pct + '%';
                         progressPercent.textContent = pct + '%';
                         if (pct === 100) {
-                            progressText.textContent = 'Обработка...';
+                            progressText.textContent = I18N.processing || '...';
                         }
                     }
                 };
@@ -356,7 +358,7 @@
                             }
                         }
                     };
-                    xhr.onerror = () => reject(new Error('Ошибка сети'));
+                    xhr.onerror = () => reject(new Error(I18N.error_network || 'Network error'));
                     xhr.send(fd);
                 });
 
@@ -364,35 +366,36 @@
                 progressFill.classList.replace('from-primary-500', 'from-emerald-500');
                 progressFill.classList.replace('to-indigo-500', 'to-emerald-400');
                 progressFill.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.5)';
-                progressText.textContent = 'Успешно!';
+                progressText.textContent = I18N.success_title || 'Done!';
                 progressPercent.textContent = '100%';
                 
-                showResult('success', \`
+                const subtitle = (I18N.success_subtitle_tpl || 'Files: %s').replace('%s', resp.files);
+                showResult('success', `
                     <div class="flex flex-col items-center space-y-2">
                         <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-2">
                             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                         </div>
-                        <p class="font-medium text-emerald-400">Доказательства загружены</p>
-                        <p class="text-slate-400 text-xs">Файлов отправлено: \${resp.files}. Можете закрыть страницу.</p>
+                        <p class="font-medium text-emerald-400">${escHtml(I18N.success_title)}</p>
+                        <p class="text-slate-400 text-xs">${escHtml(subtitle)}</p>
                     </div>
-                \`);
+                `);
                 actionsContainer.classList.add('hidden');
                 fileList.classList.add('hidden');
 
             } catch (err) {
-                progressText.textContent = 'Ошибка';
+                progressText.textContent = I18N.error_prefix || 'Error';
                 progressFill.classList.replace('from-primary-500', 'from-danger-500');
                 progressFill.classList.replace('to-indigo-500', 'to-danger-400');
                 progressFill.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
                 
-                showResult('error', \`
+                showResult('error', `
                     <div class="flex items-center space-x-2 text-danger-400">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span class="font-medium text-left">Ошибка: \${escHtml(err.message)}</span>
+                        <span class="font-medium text-left">${escHtml(I18N.error_prefix)}${escHtml(err.message)}</span>
                     </div>
-                \`);
+                `);
                 
-                uploadBtn.innerHTML = 'Повторить';
+                uploadBtn.innerHTML = I18N.upload_btn || 'Upload';
                 uploadBtn.disabled = false;
                 skipBtn.disabled = false;
             }
@@ -402,28 +405,28 @@
             skipBtn.disabled = true;
             uploadBtn.disabled = true;
             
-            skipBtn.innerHTML = \`
+            skipBtn.innerHTML = `
                 <div class="flex items-center justify-center space-x-2">
                     <svg class="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Отмена...</span>
+                    <span>${I18N.skip_loading || '...'}</span>
                 </div>
-            \`;
+            `;
 
             try {
                 const resp = await fetch('/skip?token=' + TOKEN, { method: 'POST' });
                 if (resp.ok) {
-                    showResult('success', \`
+                    showResult('success', `
                         <div class="flex flex-col items-center space-y-2">
                             <div class="w-12 h-12 rounded-full bg-slate-700/50 flex items-center justify-center text-slate-300 mb-2">
                                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                             </div>
-                            <p class="font-medium text-slate-300">Наказание отправлено без доказательств</p>
-                            <p class="text-slate-500 text-xs">Можете закрыть страницу.</p>
+                            <p class="font-medium text-slate-300">${escHtml(I18N.skip_success_title)}</p>
+                            <p class="text-slate-500 text-xs">${escHtml(I18N.skip_success_subtitle)}</p>
                         </div>
-                    \`);
+                    `);
                     actionsContainer.classList.add('hidden');
                     fileList.classList.add('hidden');
                     dropzone.classList.add('hidden');
@@ -434,24 +437,24 @@
                         if (errData.error) errMsg = errData.error;
                     } catch(e) {}
                     
-                    showResult('error', \`
+                    showResult('error', `
                         <div class="flex items-center space-x-2 text-danger-400">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span>Ошибка: \${escHtml(errMsg)}</span>
+                            <span>${escHtml(I18N.error_prefix)}${escHtml(errMsg)}</span>
                         </div>
-                    \`);
-                    skipBtn.innerHTML = 'Пропустить';
+                    `);
+                    skipBtn.innerHTML = I18N.skip_btn || 'Skip';
                     skipBtn.disabled = false;
                     uploadBtn.disabled = false;
                 }
             } catch (err) {
-                showResult('error', \`
+                showResult('error', `
                     <div class="flex items-center space-x-2 text-danger-400">
                         <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>Ошибка сети: \${escHtml(err.message)}</span>
+                        <span>${escHtml(I18N.error_network)}${escHtml(err.message)}</span>
                     </div>
-                \`);
-                skipBtn.innerHTML = 'Пропустить';
+                `);
+                skipBtn.innerHTML = I18N.skip_btn || 'Skip';
                 skipBtn.disabled = false;
                 uploadBtn.disabled = false;
             }

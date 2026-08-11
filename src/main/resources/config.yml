@@ -2,7 +2,7 @@ discord:
   webhook-url: ""
   username: "PunishNotify"
   avatar-url: ""
-  # Очередь с повторными попытками при недоступности Discord
+  # Retry queue when Discord is unavailable / Очередь с повторными попытками при недоступности Discord
   retry-enabled: true
   retry-max-attempts: 5
   retry-interval-seconds: 30
@@ -11,6 +11,8 @@ http-server:
   enabled: true
   port: 8734
   bind: "0.0.0.0"
+  # Public address for the evidence upload link (visible to players/moderators).
+  # If empty — "http://<bind>:<port>" is used. Example: "http://server.example.com"
   # Публичный адрес для ссылки загрузки доказательств (виден игрокам/модераторам).
   # Если пусто — используется "http://<bind>:<port>". Пример: "http://server.kibermine.ru"
   public-url: ""
@@ -29,3 +31,11 @@ events:
   warn: true
   jail: true
   unjail: true
+
+# Plugin language / Язык плагина.
+# Built-in languages / Встроенные языки: en (English), ru (Русский)
+# You can create a custom language file in plugins/PunishNotify/lang/<code>.yml
+# (copy en.yml or ru.yml as a base) and set its code below.
+# Вы можете создать свой файл локализации в plugins/PunishNotify/lang/<код>.yml
+# (за основу возьмите en.yml или ru.yml) и указать его код ниже.
+language: "en"

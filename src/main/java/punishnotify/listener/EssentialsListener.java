@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import punishnotify.LocaleManager;
 import punishnotify.PunishmentType;
 import punishnotify.evidence.EvidenceManager;
 
@@ -16,9 +17,14 @@ import java.util.UUID;
 public class EssentialsListener implements Listener {
 
     private final EvidenceManager evidenceManager;
+    private LocaleManager lm;
 
     public EssentialsListener(EvidenceManager evidenceManager) {
         this.evidenceManager = evidenceManager;
+    }
+
+    public void setLocaleManager(LocaleManager lm) {
+        this.lm = lm;
     }
 
     @EventHandler
@@ -26,7 +32,10 @@ public class EssentialsListener implements Listener {
         net.ess3.api.IUser affected = event.getAffected();
         net.ess3.api.IUser controller = event.getController();
 
-        String moderatorName = controller != null && controller.getBase() instanceof Player p ? p.getName() : "Консоль";
+        String consoleName = lm != null ? lm.get("embed.console") : "Console";
+        String noReason = lm != null ? lm.get("embed.no_reason") : "Not specified";
+
+        String moderatorName = controller != null && controller.getBase() instanceof Player p ? p.getName() : consoleName;
         UUID moderatorUuid = controller != null && controller.getBase() instanceof Player p ? p.getUniqueId() : null;
 
         PunishmentType type = event.getValue() ? PunishmentType.MUTE : PunishmentType.UNMUTE;
@@ -44,7 +53,7 @@ public class EssentialsListener implements Listener {
                 type,
                 affected.getName(),
                 affected.getUUID(),
-                event.getReason() != null ? event.getReason() : "Не указана",
+                event.getReason() != null ? event.getReason() : noReason,
                 moderatorName,
                 moderatorUuid,
                 durationSeconds,
@@ -57,7 +66,9 @@ public class EssentialsListener implements Listener {
         net.ess3.api.IUser affected = event.getAffected();
         net.ess3.api.IUser controller = event.getController();
 
-        String moderatorName = controller != null && controller.getBase() instanceof Player p ? p.getName() : "Консоль";
+        String consoleName = lm != null ? lm.get("embed.console") : "Console";
+
+        String moderatorName = controller != null && controller.getBase() instanceof Player p ? p.getName() : consoleName;
         UUID moderatorUuid = controller != null && controller.getBase() instanceof Player p ? p.getUniqueId() : null;
 
         PunishmentType type = event.getValue() ? PunishmentType.JAIL : PunishmentType.UNJAIL;
@@ -86,7 +97,7 @@ public class EssentialsListener implements Listener {
         String playerName = kicked.getName();
         UUID playerUuid = kicked.getUUID();
 
-        String moderatorName = kicker != null && kicker.getBase() instanceof Player p ? p.getName() : "Консоль";
+        String moderatorName = kicker != null && kicker.getBase() instanceof Player p ? p.getName() : (lm != null ? lm.get("embed.console") : "Console");
         UUID moderatorUuid = kicker != null && kicker.getBase() instanceof Player p ? p.getUniqueId() : null;
 
         evidenceManager.onPunishment(

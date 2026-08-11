@@ -2,6 +2,7 @@ package punishnotify.webhook;
 
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
+import punishnotify.LocaleManager;
 import punishnotify.PendingPunishment;
 import punishnotify.PunishNotifyPlugin;
 
@@ -20,6 +21,7 @@ public class WebhookQueue {
     private final PunishNotifyPlugin plugin;
     private final DiscordWebhook webhook;
     private final Logger logger;
+    private LocaleManager lm;
 
     private final Map<String, QueuedEntry> queue = new ConcurrentHashMap<>();
     private final Set<String> inFlight = ConcurrentHashMap.newKeySet();
@@ -33,6 +35,10 @@ public class WebhookQueue {
         this.plugin = plugin;
         this.webhook = webhook;
         this.logger = logger;
+    }
+
+    public void setLocaleManager(LocaleManager lm) {
+        this.lm = lm;
     }
 
     public void configure(boolean enabled, int maxAttempts, int retryIntervalSeconds) {
@@ -55,8 +61,7 @@ public class WebhookQueue {
             webhook.sendAsync(p, files).whenComplete((ok, ex) -> {
                 deleteFiles(files);
                 if (!Boolean.TRUE.equals(ok)) {
-                    logger.warning("Вебхук для " + p.playerName()
-                            + " не отправлен (ретраи отключены в конфиге).");
+                    logger.warning("Webhook for " + p.playerName() + " not sent (retries disabled in config).");
                 }
             });
             return;
@@ -65,7 +70,7 @@ public class WebhookQueue {
         if (inFlight.add(token)) {
             send(p, files, context, 0, token);
         } else {
-            queue.put(token, new QueuedEntry(p, files, 0, "ожидание очереди"));
+            queue.put(token, new QueuedEntry(p, files, 0, "waiting in queue"));
         }
     }
 
@@ -75,22 +80,22 @@ public class WebhookQueue {
             if (Boolean.TRUE.equals(ok)) {
                 queue.remove(token);
                 deleteFiles(files);
-                logger.info("Вебхук доставлен для " + p.playerName() + " (" + context + ")"
-                        + (attempts > 0 ? ", попытка " + (attempts + 1) : ""));
+                logger.info("Webhook delivered for " + p.playerName() + " (" + context + ")"
+                        + (attempts > 0 ? ", attempt " + (attempts + 1) : ""));
             } else {
                 String reason = ex != null
                         ? ex.getClass().getSimpleName() + ": " + ex.getMessage()
-                        : "отклонён Discord";
+                        : "rejected by Discord";
                 int nextAttempts = attempts + 1;
                 if (nextAttempts >= maxAttempts) {
                     queue.remove(token);
                     deleteFiles(files);
-                    logger.severe("Вебхук для " + p.playerName() + " не отправлен после "
-                            + maxAttempts + " попыток (" + reason + ") — отчёт отброшен.");
+                    logger.severe("Webhook for " + p.playerName() + " failed after "
+                            + maxAttempts + " attempts (" + reason + ") — report discarded.");
                 } else {
                     queue.put(token, new QueuedEntry(p, files, nextAttempts, reason));
-                    logger.warning("Вебхук для " + p.playerName() + " в очереди на повтор: " + reason
-                            + " (попытка " + nextAttempts + "/" + maxAttempts + ").");
+                    logger.warning("Webhook for " + p.playerName() + " queued for retry: " + reason
+                            + " (attempt " + nextAttempts + "/" + maxAttempts + ").");
                 }
             }
         });
@@ -103,7 +108,7 @@ public class WebhookQueue {
         for (QueuedEntry e : List.copyOf(queue.values())) {
             String token = e.punishment().token();
             if (inFlight.add(token)) {
-                send(e.punishment(), e.files(), "повторная попытка", e.attempts(), token);
+                send(e.punishment(), e.files(), "retry", e.attempts(), token);
             }
         }
     }
@@ -118,8 +123,8 @@ public class WebhookQueue {
             timerTask = null;
         }
         if (!queue.isEmpty()) {
-            logger.warning("При остановке сервера в очереди осталось " + queue.size()
-                    + " неотправленных вебхуков — они будут потеряны.");
+            logger.warning("Server shutting down with " + queue.size()
+                    + " unsent webhooks in queue — they will be lost.");
             for (QueuedEntry e : queue.values()) {
                 deleteFiles(e.files());
             }

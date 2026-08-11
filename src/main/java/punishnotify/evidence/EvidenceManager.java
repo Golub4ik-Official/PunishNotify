@@ -7,6 +7,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import punishnotify.LocaleManager;
 import punishnotify.PendingPunishment;
 import punishnotify.PunishNotifyPlugin;
 import punishnotify.PunishmentType;
@@ -36,6 +37,8 @@ public class EvidenceManager {
     private int httpPort;
     private String publicUrl;
 
+    private LocaleManager lm;
+
     public EvidenceManager(PunishNotifyPlugin plugin, DiscordWebhook webhook,
                           WebhookQueue queue, HttpUploadServer httpServer) {
         this.plugin = plugin;
@@ -43,6 +46,10 @@ public class EvidenceManager {
         this.queue = queue;
         this.httpServer = httpServer;
         this.logger = plugin.getLogger();
+    }
+
+    public void setLocaleManager(LocaleManager lm) {
+        this.lm = lm;
     }
 
     public void reloadConfig() {
@@ -70,10 +77,11 @@ public class EvidenceManager {
             return;
         }
 
+        String normalizedReason = (reason != null && !reason.isBlank()) ? reason : t("embed.no_reason");
         String token = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
 
         PendingPunishment punishment = new PendingPunishment(
-                type, playerName, playerUuid, reason,
+                type, playerName, playerUuid, normalizedReason,
                 moderatorName, moderatorUuid, durationSeconds,
                 serverName, System.currentTimeMillis(), token
         );
@@ -85,9 +93,8 @@ public class EvidenceManager {
         BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (pending.remove(token) != null) {
                 tasks.remove(token);
-                queue.submit(punishment, Collections.emptyList(), "таймаут");
-                logger.info("Таймаут доказательств для " + playerName
-                        + " (" + type.displayName() + ") — вебхук поставлен в очередь без файлов.");
+                queue.submit(punishment, Collections.emptyList(), "timeout");
+                logger.info(t("log.timeout_queued", playerName, type.displayName(lm)));
             }
         }, timeoutSeconds * 20L);
         tasks.put(token, task);
@@ -98,13 +105,11 @@ public class EvidenceManager {
                 ? Bukkit.getPlayer(p.moderatorUuid()) : null;
         if (moderator == null) {
             if (p.moderatorUuid() == null) {
-                queue.submit(p, Collections.emptyList(), "наказание из консоли");
-                logger.info("Наказание от консоли для " + p.playerName()
-                        + " — вебхук поставлен в очередь без доказательств.");
+                queue.submit(p, Collections.emptyList(), "console");
+                logger.info(t("log.console_punishment", p.playerName()));
             } else {
-                queue.submit(p, Collections.emptyList(), "модератор оффлайн");
-                logger.info("Модератор оффлайн для " + p.playerName()
-                        + " — вебхук поставлен в очередь без доказательств.");
+                queue.submit(p, Collections.emptyList(), "moderator offline");
+                logger.info(t("log.moderator_offline", p.playerName()));
             }
             pending.remove(p.token());
             BukkitTask task = tasks.remove(p.token());
@@ -117,19 +122,21 @@ public class EvidenceManager {
                 : "http://" + httpHost + ":" + httpPort;
         String uploadUrl = baseUrl + "/?token=" + p.token();
 
+        String typeLine = p.type().emoji() + " " + p.type().displayName(lm) + ": ";
+
         Component message = Component.text()
-                .append(Component.text("[PunishNotify] ", NamedTextColor.GOLD))
-                .append(Component.text(p.type().emoji() + " " + p.type().displayName() + ": ", NamedTextColor.WHITE))
+                .append(Component.text(t("notify.header"), NamedTextColor.GOLD))
+                .append(Component.text(typeLine, NamedTextColor.WHITE))
                 .append(Component.text(p.playerName(), NamedTextColor.RED))
                 .append(Component.newline())
-                .append(Component.text("Прикрепить доказательства?", NamedTextColor.GRAY))
+                .append(Component.text(t("notify.attach_question"), NamedTextColor.GRAY))
                 .append(Component.newline())
-                .append(Component.text(" [Загрузить] ", NamedTextColor.GREEN)
+                .append(Component.text(t("notify.upload_button"), NamedTextColor.GREEN)
                         .clickEvent(ClickEvent.openUrl(uploadUrl))
-                        .hoverEvent(HoverEvent.showText(Component.text("Открыть страницу загрузки"))))
-                .append(Component.text(" [Пропустить] ", NamedTextColor.RED)
+                        .hoverEvent(HoverEvent.showText(Component.text(t("notify.upload_hover")))))
+                .append(Component.text(t("notify.skip_button"), NamedTextColor.RED)
                         .clickEvent(ClickEvent.runCommand("/punishnotify skip " + p.token()))
-                        .hoverEvent(HoverEvent.showText(Component.text("Отправить без доказательств"))))
+                        .hoverEvent(HoverEvent.showText(Component.text(t("notify.skip_hover")))))
                 .build();
 
         moderator.sendMessage(message);
@@ -138,25 +145,23 @@ public class EvidenceManager {
     public void completeWithEvidence(String token, List<Path> files) {
         PendingPunishment p = pending.remove(token);
         if (p == null) {
-            logger.warning("Токен " + token + " не найден или уже обработан.");
+            logger.warning(t("log.token_not_found", token));
             return;
         }
         cancelTimeout(token);
-        queue.submit(p, files, "доказательства");
-        logger.info("Вебхук для " + p.playerName() + " (" + p.type().displayName()
-                + ") отправляется с " + files.size() + " файлами.");
+        queue.submit(p, files, "evidence");
+        logger.info(t("log.evidence_queued", p.playerName(), p.type().displayName(lm), files.size()));
     }
 
     public void skip(String token) {
         PendingPunishment p = pending.remove(token);
         if (p == null) {
-            logger.warning("Токен " + token + " не найден или уже обработан.");
+            logger.warning(t("log.token_not_found", token));
             return;
         }
         cancelTimeout(token);
-        queue.submit(p, Collections.emptyList(), "пропуск");
-        logger.info("Вебхук для " + p.playerName() + " (" + p.type().displayName()
-                + ") отправляется без доказательств.");
+        queue.submit(p, Collections.emptyList(), "skip");
+        logger.info(t("log.skip_queued", p.playerName(), p.type().displayName(lm)));
     }
 
     public boolean hasToken(String token) {
@@ -176,9 +181,15 @@ public class EvidenceManager {
         }
         tasks.clear();
         for (PendingPunishment p : pending.values()) {
-            queue.submit(p, Collections.emptyList(), "выключение сервера");
+            queue.submit(p, Collections.emptyList(), "server shutdown");
         }
         pending.clear();
         queue.shutdown();
+    }
+
+    /** Helper: get locale string, graceful null-lm fallback. */
+    private String t(String key, Object... args) {
+        if (lm == null) return key;
+        return lm.get(key, args);
     }
 }

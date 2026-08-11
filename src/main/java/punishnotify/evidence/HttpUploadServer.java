@@ -3,6 +3,7 @@ package punishnotify.evidence;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import punishnotify.LocaleManager;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,10 +36,15 @@ public class HttpUploadServer {
     private String uploadPageHtml;
     private long maxFileSizeBytes;
     private int maxFiles;
+    private LocaleManager lm;
 
     public HttpUploadServer(Logger logger, EvidenceManager evidenceManager) {
         this.logger = logger;
         this.evidenceManager = evidenceManager;
+    }
+
+    public void setLocaleManager(LocaleManager lm) {
+        this.lm = lm;
     }
 
     public void loadConfig(int port, String bind, long maxFileSizeMb, int maxFiles) {
@@ -54,16 +60,16 @@ public class HttpUploadServer {
             server.createContext("/skip", this::handleSkip);
             server.setExecutor(Executors.newVirtualThreadPerTaskExecutor());
             server.start();
-            logger.info("HTTP-сервер загрузки запущен на " + bind + ":" + port);
+            logger.info(t("log.http_server_started", bind, port));
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Не удалось запустить HTTP-сервер: " + e.getMessage());
+            logger.log(Level.WARNING, t("log.http_server_start_failed", e.getMessage()));
         }
     }
 
     public void stop() {
         if (server != null) {
             server.stop(0);
-            logger.info("HTTP-сервер загрузки остановлен.");
+            logger.info(t("log.http_server_stopped"));
         }
     }
 
@@ -86,7 +92,7 @@ public class HttpUploadServer {
 
             sendResponse(exchange, 200, html, "text/html; charset=utf-8");
         } catch (Exception e) {
-            logger.log(Level.WARNING, "HTTP ошибка (GET /): " + e.getMessage());
+            logger.log(Level.WARNING, t("log.http_error_get", e.getMessage()));
             sendResponse(exchange, 500, "Internal Server Error");
         }
     }
@@ -130,7 +136,7 @@ public class HttpUploadServer {
             sendResponse(exchange, 200, "{\"status\":\"ok\",\"files\":" + uploadedFiles.size() + "}");
 
         } catch (Exception e) {
-            logger.log(Level.WARNING, "HTTP ошибка (POST /upload): " + e.getMessage());
+            logger.log(Level.WARNING, t("log.http_error_upload", e.getMessage()));
             sendResponse(exchange, 500, "{\"error\":\"" + jsonEscape(e.getMessage()) + "\"}");
         }
     }
@@ -155,7 +161,7 @@ public class HttpUploadServer {
             sendResponse(exchange, 200, "{\"status\":\"skipped\"}");
 
         } catch (Exception e) {
-            logger.log(Level.WARNING, "HTTP ошибка (POST /skip): " + e.getMessage());
+            logger.log(Level.WARNING, t("log.http_error_skip", e.getMessage()));
             sendResponse(exchange, 500, "{\"error\":\"" + jsonEscape(e.getMessage()) + "\"}");
         }
     }
@@ -168,7 +174,7 @@ public class HttpUploadServer {
         try (BufferedInputStream in = new BufferedInputStream(exchange.getRequestBody())) {
             String firstLine = readAsciiLine(in);
             if (firstLine == null || !firstLine.startsWith("--" + boundary)) {
-                throw new IOException("Неверный формат multipart: нет начальной границы");
+                throw new IOException(t("log.multipart_invalid"));
             }
 
             boolean finished = false;
@@ -188,7 +194,7 @@ public class HttpUploadServer {
                 if (filename == null || !isAllowedExtension(filename)) {
                     consumePartContent(in, delim, null, Long.MAX_VALUE);
                 } else if (files.size() >= maxFiles) {
-                    throw new IOException("Превышен лимит файлов: " + maxFiles);
+                    throw new IOException(t("log.file_limit_exceeded", maxFiles));
                 } else {
                     Path file = tempDir.resolve(filename);
                     long bytesWritten = consumePartContent(in, delim, file, maxFileSizeBytes);
@@ -346,5 +352,11 @@ public class HttpUploadServer {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"")
                 .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
+    }
+
+    /** Helper: get locale string, graceful null-lm fallback. */
+    private String t(String key, Object... args) {
+        if (lm == null) return key;
+        return lm.get(key, args);
     }
 }
