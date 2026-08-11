@@ -21,3 +21,6 @@ Thumbs.db
 # Server runtime files (never commit these)
 logs/
 *.log
+
+# Agent instructions
+AGENTS.md
