@@ -38,14 +38,14 @@
 
 9. **Когда задача требует выкладки новой версии плагина** (пользователь просит «сделай релиз», «зарелизь», «выложи версию» и т.п.):
    - Обнови номер версии в `build.gradle.kts` (`version`) и в `src/main/resources/plugin.yml` (`version`).
-   - Актуализируй `README.md` (добавь новые команды/пермишены/конфиги).
+   - Актуализируй `README.md` (добавь новые команды/пермишены/конфиги) и описание проекта на **Modrinth**.
    - Закоммить и запушь изменения в `main`.
    - Создай Git-тег `v<версия>` по схеме `vMAJOR.MINOR.PATCH` (например `v1.2.0`), затем запуши тег:
      ```bash
      git tag v<версия>
      git push origin main --tags
      ```
-10. Пуш тега запускает GitHub Actions workflow `.github/workflows/release.yml`, который автоматически соберёт плагин, создаст GitHub Release и опуликует релиз на **Modrinth**.
+10. Пуш тега запускает GitHub Actions workflow `.github/workflows/release.yml`, который автоматически соберёт плагин, создаст GitHub Release и опубликует релиз на **Modrinth**.
 11. Также дублируй публикацию на **Modrinth** напрямую через CLI скилла `modrinth-api`:
     ```bash
     python C:\Users\Kiril\.gemini\config\skills\modrinth-api\scripts\modrinth_cli.py publish \
@@ -71,9 +71,20 @@
 
 ---
 
-### 📚 6. Поддержка README.md
+### 📚 6. Поддержка README.md и описания на Modrinth
 
-15. **Каждый раз при добавлении новых механик, команд или пермишеннов** — актуализируй `README.md` в этом репозитории (поддерживай двуязычный формат EN/RU), закоммить и запушь обновление вместе с изменениями кода.
+15. **Каждый раз при добавлении новых механик, команд, пермишенов или параметров конфигурации**:
+    - **В обязательном порядке** актуализируй `README.md` в этом репозитории (поддерживай двуязычный формат EN/RU с детальными таблицами команд и конфигов).
+    - **При необходимости** (изменение описания, добавление функций, изменение гайдов) актуализируй описание страницы проекта на **Modrinth**, обновив проект вызовом `PATCH /project/punishnotify` с новым содержимым `body` из `README.md` или вызовом CLI:
+      ```bash
+      python C:\Users\Kiril\.gemini\config\skills\modrinth-api\scripts\modrinth_cli.py create-project \
+        --slug punishnotify \
+        --title PunishNotify \
+        --summary "Discord punishment notification plugin with interactive web evidence attachment for Paper" \
+        --readme README.md \
+        --categories "management,utility" \
+        --project-type mod
+      ```
 
 ---
 
@@ -97,12 +108,12 @@ PunishNotifyPlugin             — Главный JavaPlugin класс (life-cy
 ## 📋 Порядок действий для релиза (Чек-лист)
 
 1. Обнови версию в `build.gradle.kts` и `plugin.yml`.
-2. Актуализируй `README.md` (новые механики/команды/пермишены/конфиги).
+2. Актуализируй `README.md` (новые механики/команды/пермишены/конфиги) и описание проекта на Modrinth.
 3. Собери плагин: `./gradlew build`.
 4. `git add -A; git commit -m "Релиз vX.Y.Z"; git push`.
 5. `git tag vX.Y.Z; git push origin main --tags`.
 6. Опубликуй на Modrinth через CLI `modrinth-api`.
-7. Скопируй `build/libs/PunishNotify-X.Y.Z.jar` в `C:\Minecraft\Paper-1.21.11\plugins\PunishNotify.jar`, закоммить и запушь в репозиторий сервера.
+7. Скопируй `build/libs/PunishNotify-X.Y.Z.jar` в `C:\Minecraft\Paper-1.21.11\plugins\PunishNotify.jar`, закоммить и запушить в репозиторий сервера.
 
 ---
 
