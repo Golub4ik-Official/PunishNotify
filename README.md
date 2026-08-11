@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="assets/logo.jpg" width="180" alt="PunishNotify Logo">
+</p>
+
 # PunishNotify
 
 > 🛠️ **Discord Punishment Notification Plugin with Web Evidence Attachment for Paper 1.21.11**
+
+<p align="center">
+  <img src="assets/banner.jpg" width="100%" alt="PunishNotify Showcase Banner">
+</p>
 
 [English Description](#-english) | [Русское описание](#-русский)
 
