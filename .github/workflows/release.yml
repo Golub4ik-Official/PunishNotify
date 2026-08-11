@@ -32,3 +32,14 @@ jobs:
         with:
           files: build/libs/PunishNotify-*.jar
           generate_release_notes: true
+
+      - name: Publish to Modrinth
+        uses: Kirbell/modrinth-action@v1
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          project_id: punishnotify
+          version_number: ${{ github.ref_name }}
+          name: "PunishNotify ${{ github.ref_name }}"
+          file: build/libs/PunishNotify-*.jar
+          game_versions: '1.21, 1.21.1, 1.21.2, 1.21.3, 1.21.4, 1.21.11'
+          loaders: 'paper, spigot, purpur, folia'
