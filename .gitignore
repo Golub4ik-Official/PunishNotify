@@ -21,6 +21,3 @@ Thumbs.db
 # Server runtime files (never commit these)
 logs/
 *.log
-
-# Agent instructions (contains workflow secrets)
-AGENTS.md
